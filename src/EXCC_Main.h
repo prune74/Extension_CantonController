@@ -59,4 +59,4 @@ extern EXCC_Quadrature quadAH;
 // (pas besoin d’extern : tout est statique dans EXCC_Compteur)
 
 // Booster (DCC + RailCom HF)
-extern EXCC_Booster_WS2812 booster;   // <-- CORRECT
+extern EXCC_Booster_WS2812 booster;

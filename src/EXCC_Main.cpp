@@ -15,7 +15,8 @@
 
 #include "EXCC_Quadrature.h"
 #include "EXCC_Compteur.h"
-#include "EXCC_Booster_WS2812.h" // <-- NOUVEAU MODULE
+#include "EXCC_Booster_WS2812.h"   // Booster
+#include "EXCC_StatusLed.h"        // Nouveau : gestion LEDs Status
 
 #include <FastLED.h>
 #include <Arduino.h>
@@ -105,8 +106,8 @@ void EXCC_Main::begin() noexcept
     // Direction AH
     FastLED.addLeds<WS2812B, PIN_WS2812_DIR_AH, GRB>(stripDIR_AH, 4);
 
-    // Booster (Canton + 3 LEDs Booster)
-    FastLED.addLeds<WS2812B, PIN_WS2812_STATUS, GRB>(g_wsStrip, 4);
+    // Status (5 LEDs)
+    FastLED.addLeds<WS2812B, PIN_WS2812_STATUS, GRB>(g_wsStrip, 5);
 
     // Efface toutes les LED au démarrage
     FastLED.clear(true);
@@ -131,13 +132,21 @@ void EXCC_Main::begin() noexcept
     EXCC_Compteur::begin();
 
     // ------------------------------------------------------------
-    // Booster WS2812 (nouveau module)
+    // Booster WS2812
     // ------------------------------------------------------------
     booster.begin();
+
+    // ------------------------------------------------------------
+    // Status LEDs (CAN pour l’instant)
+    // ------------------------------------------------------------
+    EXCC_StatusLed::begin(g_wsStrip);
 }
 
 void EXCC_Main::loop() noexcept
 {
     // Boucle principale EXCC
     EXCC_Runtime::update();
+
+    // Mise à jour des LEDs Status (LED 4 CAN pour l’instant)
+    EXCC_StatusLed::update();
 }

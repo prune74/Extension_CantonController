@@ -2,12 +2,12 @@
 #include "EXCC_CanBooster.h"
 #include <Arduino.h>
 
-// LED CAN = LED 4 du strip Status
 CRGB *EXCC_StatusLed::LED_CAN = nullptr;
 
 void EXCC_StatusLed::begin(CRGB *strip)
 {
-    LED_CAN = &strip[4];   // LED CAN
+    // LED 4 = CAN
+    LED_CAN = &strip[4];
 }
 
 void EXCC_StatusLed::update()
@@ -17,22 +17,22 @@ void EXCC_StatusLed::update()
 
 void EXCC_StatusLed::updateLedCan()
 {
+    if (!LED_CAN)
+        return;
+
     uint32_t now  = millis();
     uint32_t last = EXCC_CanBooster::lastCanRxMs();
 
     if (now - last < 200)
     {
-        // CAN actif
-        *LED_CAN = CRGB::Green;
+        *LED_CAN = CRGB::Green;     // CAN actif
     }
     else if (now - last < 1000)
     {
-        // CAN silencieux
-        *LED_CAN = CRGB::Orange;
+        *LED_CAN = CRGB::Orange;    // CAN silencieux
     }
     else
     {
-        // CAN KO
-        *LED_CAN = CRGB::Red;
+        *LED_CAN = CRGB::Red;       // CAN KO
     }
 }
