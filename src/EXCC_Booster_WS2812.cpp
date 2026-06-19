@@ -22,9 +22,8 @@ static CanDccBooster s_booster(s_hw, s_cfg);
 extern CRGB g_wsStrip[5];
 extern EXCC_Canton_WS2812 cantonWS;
 
+// Seule LED encore gérée ici : LED 1 (état général)
 static CRGB *LED_STATE = &g_wsStrip[1];
-static CRGB *LED_RAILCOM = &g_wsStrip[2];
-static CRGB *LED_TELEM = &g_wsStrip[3];
 
 // ---------------------------------------------------------------------------
 //  Constructeur
@@ -52,9 +51,7 @@ void EXCC_Booster_WS2812::begin()
 
     s_booster.setConfig(s_cfg);
 
-    *LED_STATE   = CRGB::Black;
-    *LED_RAILCOM = CRGB::Black;
-    *LED_TELEM   = CRGB::Black;
+    *LED_STATE = CRGB::Black;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,9 +72,7 @@ void EXCC_Booster_WS2812::setEnabled(bool enabled)
 
         cantonWS.setOccupation(false);
 
-        *LED_STATE   = CRGB::Red;
-        *LED_RAILCOM = CRGB::Black;
-        *LED_TELEM   = CRGB::Black;
+        *LED_STATE = CRGB::Red;
     }
 }
 
@@ -104,9 +99,7 @@ void EXCC_Booster_WS2812::update()
 
     updateOccupation(m_current_mA);
 
-    updateLedState();
-    updateLedRailcom();
-    updateLedTelemetry();
+    updateLedState();   // <<< seule LED encore gérée ici
 }
 
 // ---------------------------------------------------------------------------
@@ -118,11 +111,10 @@ void EXCC_Booster_WS2812::onCanMessage(uint32_t id, const uint8_t *data, uint8_t
 }
 
 // ---------------------------------------------------------------------------
-//  RailCom hooks
+//  RailCom hooks (LED supprimée)
 // ---------------------------------------------------------------------------
 void EXCC_Booster_WS2812::onCutoutStart()
 {
-    *LED_RAILCOM = CRGB::White;
     s_booster.onCutoutStart();
 }
 
@@ -206,69 +198,6 @@ void EXCC_Booster_WS2812::updateLedState()
         *LED_STATE = (millis() & 300) ? CRGB::Red : CRGB::Purple;
         break;
     }
-}
-
-// ---------------------------------------------------------------------------
-//  LED 2 : RailCom
-// ---------------------------------------------------------------------------
-void EXCC_Booster_WS2812::updateLedRailcom()
-{
-    const BoosterTelemetry &t = s_booster.getTelemetry();
-
-    uint32_t now       = millis();
-    uint32_t lastCutout = EXCC_CanBooster::lastCutoutMs();
-    bool cutoutActive  = EXCC_CanBooster::isCutoutActive();
-    bool cutoutOk      = (now - lastCutout < 50);
-
-    // 1) Priorité : adresse RailCom détectée
-    if (t.railcomAddress != BoosterConstants::RAILCOM_NO_ADDRESS)
-    {
-        *LED_RAILCOM = (millis() & 100) ? CRGB(150, 0, 255) : CRGB::Black;
-        return;
-    }
-
-    // 2) Cutout actif → blanc
-    if (cutoutActive)
-    {
-        *LED_RAILCOM = CRGB::White;
-        return;
-    }
-
-    // 3) Cutout OK mais fermé → bleu sombre
-    if (cutoutOk)
-    {
-        *LED_RAILCOM = CRGB(0, 0, 20);
-        return;
-    }
-
-    // 4) Cutout KO → rouge
-    *LED_RAILCOM = CRGB::Red;
-}
-
-// ---------------------------------------------------------------------------
-//  LED 3 : télémétrie
-// ---------------------------------------------------------------------------
-void EXCC_Booster_WS2812::updateLedTelemetry()
-{
-    if (m_faultThermal)
-    {
-        *LED_TELEM = CRGB::Red;
-        return;
-    }
-
-    if (m_voltage_mV < EXCC_BOOSTER_MIN_TENSION_mV)
-    {
-        *LED_TELEM = CRGB::Blue;
-        return;
-    }
-
-    if (m_current_mA > (EXCC_BOOSTER_MAX_COURANT_mA * 8) / 10)
-    {
-        *LED_TELEM = CRGB::Orange;
-        return;
-    }
-
-    *LED_TELEM = CRGB::Green;
 }
 
 // ---------------------------------------------------------------------------
