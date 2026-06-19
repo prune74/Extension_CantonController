@@ -1,4 +1,3 @@
-// EXCC_BoosterCore.h
 #pragma once
 #include <stdint.h>
 

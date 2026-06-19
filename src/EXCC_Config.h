@@ -134,7 +134,7 @@
  *    - sécurité
  *    - trames 0x07 vers CC
  * ============================================================ */
-enum ExsaBoosterEtat : uint8_t
+enum ExccBoosterEtat : uint8_t
 {
     BOOSTER_OFF = 0,
     BOOSTER_OK = 1,

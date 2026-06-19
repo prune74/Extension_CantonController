@@ -1,7 +1,7 @@
 // EXCC_BoosterCore.cpp
 #include "EXCC_BoosterCore.h"
 #include "EXCC_CanBooster.h"
-#include "EXCC_Booster.h"
+#include "EXCC_Booster_WS2812.h"
 #include "EXCC_Calibration.h"
 #include "EXCC_UartTx.h"
 #include "EXCC_Config.h"
@@ -26,21 +26,14 @@ static bool s_boosterEnabled = true;
  * ============================================================================
  *  SECTION : Timer HF RailCom
  * ============================================================================
- *  Le RailCom HF doit être échantillonné très rapidement :
- *
- *      → feedRailcomSample() doit être appelé pendant le cutout
- *      → typiquement toutes les 8 à 12 µs (≈ 80–120 kHz)
- *
- *  Ce timer est indépendant de la tâche 1 ms.
  */
 static hw_timer_t *s_railcomTimer = nullptr;
 
 void IRAM_ATTR railcomTimerISR()
 {
-    // On ne lit RailCom que pendant le cutout
     if (EXCC_CanBooster::isCutoutActive())
     {
-        EXCC_Booster::feedRailcomSample();
+        booster.feedRailcomSample();
     }
 }
 
@@ -55,9 +48,9 @@ void EXCC_BoosterCore::startTask()
         return;
 
     // --- Timer HF RailCom (100 kHz) ---
-    s_railcomTimer = timerBegin(0, 80, true);   // 80 MHz / 80 = 1 MHz
+    s_railcomTimer = timerBegin(0, 80, true); // 80 MHz / 80 = 1 MHz
     timerAttachInterrupt(s_railcomTimer, &railcomTimerISR, true);
-    timerAlarmWrite(s_railcomTimer, 10, true);  // 10 µs → 100 kHz
+    timerAlarmWrite(s_railcomTimer, 10, true); // 10 µs → 100 kHz
     timerAlarmEnable(s_railcomTimer);
 
     // --- Tâche Booster 1 ms ---
@@ -79,20 +72,13 @@ void EXCC_BoosterCore::startTask()
 void EXCC_BoosterCore::setEnabled(bool enabled) noexcept
 {
     s_boosterEnabled = enabled;
-    EXCC_Booster::setEnabled(enabled);
+    booster.setEnabled(enabled);
 }
 
 /*
  * ============================================================================
  *  EXCC_BoosterCore::taskEntry()
  * ============================================================================
- *  Boucle principale du Booster (1 ms)
- *
- *  Elle gère :
- *      - réception CAN
- *      - logique Booster (DCC, cutout, sécurité…)
- *      - calibration automatique
- *      - envoi télémétrie
  */
 void EXCC_BoosterCore::taskEntry(void *param)
 {
@@ -100,7 +86,7 @@ void EXCC_BoosterCore::taskEntry(void *param)
 
     // Initialisation des modules
     EXCC_CanBooster::begin();
-    EXCC_Booster::begin();
+    booster.begin();
 
     EXCC_Calibration::init();
     EXCC_Calibration::start();
@@ -124,7 +110,7 @@ void EXCC_BoosterCore::taskEntry(void *param)
 
         // 2) Mise à jour du booster (DCC, cutout, RailCom, sécurité)
         if (s_boosterEnabled)
-            EXCC_Booster::update();
+            booster.update();
 
         // 3) Calibration automatique
         EXCC_Calibration::process();
@@ -138,7 +124,6 @@ void EXCC_BoosterCore::taskEntry(void *param)
                 EXCC_Calibration::getSeuilOccupe());
         }
 
-        // Si la calibration redémarre, on réautorise l’envoi
         if (EXCC_Calibration::isRunning())
             calibEnvoyee = false;
 
@@ -148,10 +133,10 @@ void EXCC_BoosterCore::taskEntry(void *param)
         {
             lastBoosterSend = now;
 
-            uint16_t courant = EXCC_Booster::readCurrent_mA();
-            uint16_t tension = EXCC_Booster::readVoltage_mV();
+            uint16_t courant = booster.readCurrent_mA();
+            uint16_t tension = booster.readVoltage_mV();
 
-            ExsaBoosterEtat etat;
+            ExccBoosterEtat etat;
 
             if (!s_boosterEnabled)
                 etat = BOOSTER_OFF;
@@ -159,7 +144,7 @@ void EXCC_BoosterCore::taskEntry(void *param)
                 etat = BOOSTER_SOUS_TENSION;
             else if (courant > EXCC_BOOSTER_MAX_COURANT_mA)
                 etat = BOOSTER_COURT_CIRCUIT;
-            else if (EXCC_Booster::isThermalFault())
+            else if (booster.isThermalFault())
                 etat = BOOSTER_SURCHAUFFE;
             else
                 etat = BOOSTER_OK;

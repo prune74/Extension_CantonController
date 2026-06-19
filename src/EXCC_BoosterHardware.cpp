@@ -124,12 +124,12 @@ void EXCC_BoosterHardware::applyDcc(const uint8_t *data, uint8_t len)
  */
 void EXCC_BoosterHardware::enableCutout()
 {
-    ledcWrite(LEDC_CHANNEL, 0);   // coupure DCC
+    ledcWrite(LEDC_CHANNEL, 0);
 }
 
 void EXCC_BoosterHardware::disableCutout()
 {
-    ledcWrite(LEDC_CHANNEL, 255); // retour DCC
+    ledcWrite(LEDC_CHANNEL, 255);
 }
 
 /*
@@ -148,9 +148,9 @@ void EXCC_BoosterHardware::setupAdc()
 
     adc1_config_width(ADC_WIDTH_BIT_12);
 
-    adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_12); // courant
-    adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_12); // tension
-    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_12); // RailCom HF
+    adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_12);
+    adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_12);
+    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_12);
 }
 
 /*
@@ -169,8 +169,7 @@ uint16_t EXCC_BoosterHardware::readCurrent_mA()
 
     // Conversion en courant (A)
     float currentA = v / (EXCC_IPROPI_R_OHMS * EXCC_IPROPI_GAIN_A_PER_A);
-
-    return (uint16_t)(currentA * 1000.0f); // mA
+    return (uint16_t)(currentA * 1000.0f);
 }
 
 /*
@@ -189,8 +188,7 @@ uint16_t EXCC_BoosterHardware::readVoltage_mV()
 
     // Application du diviseur de tension
     float vrail = v * EXCC_ADC_VOLTAGE_FACTOR;
-
-    return (uint16_t)(vrail * 1000.0f); // mV
+    return (uint16_t)(vrail * 1000.0f);
 }
 
 /*

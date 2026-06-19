@@ -7,7 +7,7 @@
 #include "EXCC_Canton_WS2812.h"
 #include "EXCC_Quadrature.h"
 #include "EXCC_Compteur.h"
-#include "EXCC_Booster.h"
+#include "EXCC_Booster_WS2812.h"
 
 /*
  * ============================================================
@@ -59,4 +59,4 @@ extern EXCC_Quadrature quadAH;
 // (pas besoin d’extern : tout est statique dans EXCC_Compteur)
 
 // Booster (DCC + RailCom HF)
-extern EXCC_Booster booster;
+extern EXCC_Booster_WS2812 booster;   // <-- CORRECT

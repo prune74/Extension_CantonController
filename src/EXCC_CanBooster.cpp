@@ -2,7 +2,10 @@
 #include "EXCC_CanConfig.h"
 #include "CanInit.h"
 #include "CanBus.h"
-#include "EXCC_Booster.h"
+#include "EXCC_Booster_WS2812.h"
+
+// Instance globale du booster
+extern EXCC_Booster_WS2812 booster;
 
 /*
  * ============================================================================
@@ -94,16 +97,9 @@ void EXCC_CanBooster::process()
  */
 void EXCC_CanBooster::handleFrame(const CanMsg &msg)
 {
-    /*
-     * ------------------------------------------------------------------------
-     *  Détection du cutout RailCom (ID 0x101)
-     * ------------------------------------------------------------------------
-     *  Le Master envoie :
-     *      data[0] = 1 → début cutout
-     *      data[0] = 0 → fin cutout
-     *
-     *  EXCC doit déclencher les hooks RailCom de la bibliothèque.
-     */
+    // ------------------------------------------------------------------------
+    // Détection du cutout RailCom (ID 0x101)
+    // ------------------------------------------------------------------------
     if (msg.id == 0x101 && msg.dlc >= 1)
     {
         bool active = (msg.data[0] != 0);
@@ -112,28 +108,21 @@ void EXCC_CanBooster::handleFrame(const CanMsg &msg)
         if (active && !s_cutoutActive)
         {
             s_cutoutActive = true;
-            EXCC_Booster::onCutoutStart();   // RailCom : début de fenêtre
+            booster.onCutoutStart();
         }
 
         // Fin du cutout
         else if (!active && s_cutoutActive)
         {
             s_cutoutActive = false;
-            EXCC_Booster::onCutoutEnd();     // RailCom : fin + décodage
+            booster.onCutoutEnd();
         }
     }
 
-    /*
-     * ------------------------------------------------------------------------
-     *  Transmission de la trame à la bibliothèque CanDccBooster
-     * ------------------------------------------------------------------------
-     *  Le cœur logique gère :
-     *      - DCC logique
-     *      - cutout matériel
-     *      - sécurité
-     *      - télémétrie
-     */
-    EXCC_Booster::onCanMessage(msg.id, msg.data, msg.dlc);
+    // ------------------------------------------------------------------------
+    // Transmission de la trame au booster
+    // ------------------------------------------------------------------------
+    booster.onCanMessage(msg.id, msg.data, msg.dlc);
 }
 
 /*

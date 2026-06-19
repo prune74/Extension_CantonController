@@ -14,7 +14,7 @@
  *  Elle sert d’interface entre :
  *      - le bus CAN Booster (DCC logique + cutout RailCom)
  *      - la bibliothèque CanDccBooster (cœur logique)
- *      - EXCC_Booster (wrapper EXCC)
+ *      - EXCC_Booster_WS2812 (wrapper Booster + LEDs + télémétrie)
  *
  *  Fonctionnement :
  *      - begin()   → initialise le bus CAN via CanUniversal
@@ -29,14 +29,14 @@
  *          data[0] = 0 → fin cutout
  *
  *      EXCC_CanBooster doit :
- *          - appeler EXCC_Booster::onCutoutStart()
- *          - appeler EXCC_Booster::onCutoutEnd()
+ *          - appeler booster.onCutoutStart()
+ *          - appeler booster.onCutoutEnd()
  *          - exposer isCutoutActive() pour le timer HF RailCom
  *
  *  NOTE :
  *      La bibliothèque CanDccBooster gère le cutout matériel,
  *      mais ne déclenche PAS elle-même le décodage RailCom HF.
- *      C’est EXCC qui doit appeler les hooks RailCom.
+ *      C’est EXCC_CanBooster qui doit appeler les hooks RailCom.
  */
 
 class EXCC_CanBooster
@@ -77,8 +77,8 @@ private:
      * ------------------------------------------------------------------------
      *  Analyse une trame CAN Booster :
      *      - détecte le cutout (ID 0x101)
-     *      - appelle les hooks RailCom
-     *      - transmet la trame à EXCC_Booster
+     *      - appelle les hooks RailCom du booster
+     *      - transmet la trame au booster (onCanMessage)
      */
     static void handleFrame(const CanMsg &msg);
 };

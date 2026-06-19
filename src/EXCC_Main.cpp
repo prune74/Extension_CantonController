@@ -1,26 +1,6 @@
 /*
  * Module : EXCC_Main (WS2812 Version)
  * Rôle   : Point d’entrée du firmware EXCC (Gestion Canton 2026).
- *
- * Architecture générale :
- *   - 5 chaînes WS2812 indépendantes :
- *        • Mât H      : feux + œil
- *        • Mât AH     : feux + œil
- *        • Direction H : 4 LED cumulatives
- *        • Direction AH : 4 LED cumulatives
- *        • Canton      : 1 LED (état du canton)
- *
- *   - Modules EXCC :
- *        • Signaux SNCF (WS2812)
- *        • Direction H / AH (WS2812)
- *        • Canton (WS2812)
- *        • Quadrature H / AH
- *        • Compteur essieux
- *        • Booster
- *
- *   - Cycle de vie :
- *        • begin() → initialisation complète
- *        • loop()  → EXCC_Runtime::update()
  */
 
 #include "EXCC_Main.h"
@@ -35,7 +15,7 @@
 
 #include "EXCC_Quadrature.h"
 #include "EXCC_Compteur.h"
-#include "EXCC_Booster.h"
+#include "EXCC_Booster_WS2812.h" // <-- NOUVEAU MODULE
 
 #include <FastLED.h>
 #include <Arduino.h>
@@ -58,8 +38,8 @@ CRGB stripDIR_H[4];
 // --- Direction AH ---
 CRGB stripDIR_AH[4];
 
-// --- Canton ---
-CRGB stripCanton[1];
+// --- Booster (Canton + 3 LEDs Booster) ---
+CRGB g_wsStrip[4]; // LED 0 = canton, LED 1/2/3 = booster
 
 // ============================================================
 // PCA9685 global (servos uniquement)
@@ -78,12 +58,17 @@ EXCC_Signaux_WS2812 signauxAH(stripAH_feux, 9, stripAH_oeil, 1, ExccSignalLayout
 EXCC_LedDirection_WS2812 directionH_WS(stripDIR_H, 0, 1, 2, 3);
 EXCC_LedDirection_WS2812 directionAH_WS(stripDIR_AH, 0, 1, 2, 3);
 
-// Canton WS2812
-EXCC_Canton_WS2812 cantonWS(&stripCanton[0]);
+// Canton WS2812 → LED 0 du strip Booster
+EXCC_Canton_WS2812 cantonWS(&g_wsStrip[0]);
 
 // Quadrature
 EXCC_Quadrature quadH;
 EXCC_Quadrature quadAH;
+
+// ============================================================
+// Booster WS2812 — INSTANCE UNIQUE
+// ============================================================
+EXCC_Booster_WS2812 booster;
 
 // ============================================================
 // Cycle de vie EXCC
@@ -114,8 +99,8 @@ void EXCC_Main::begin() noexcept
     // Direction AH
     FastLED.addLeds<WS2812B, PIN_WS2812_DIR_AH, GRB>(stripDIR_AH, 4);
 
-    // Canton
-    FastLED.addLeds<WS2812B, PIN_WS2812_CANTON, GRB>(stripCanton, 1);
+    // Booster (Canton + 3 LEDs Booster)
+    FastLED.addLeds<WS2812B, PIN_WS2812_STATUS, GRB>(g_wsStrip, 4);
 
     // Efface toutes les LED au démarrage
     FastLED.clear(true);
@@ -140,9 +125,9 @@ void EXCC_Main::begin() noexcept
     EXCC_Compteur::begin();
 
     // ------------------------------------------------------------
-    // Booster
+    // Booster WS2812 (nouveau module)
     // ------------------------------------------------------------
-    EXCC_Booster::begin();
+    booster.begin();
 }
 
 void EXCC_Main::loop() noexcept

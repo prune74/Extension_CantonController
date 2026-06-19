@@ -14,8 +14,9 @@
  */
 
 #include "EXCC_Calibration.h"
-#include "EXCC_Booster.h"
+#include "EXCC_Booster_WS2812.h"
 #include "EXCC_Config.h"
+#include "EXCC_Main.h"
 
 #include <Arduino.h>
 #include <math.h>
@@ -85,7 +86,7 @@ void EXCC_Calibration::process()
         return;
 
     // 1 échantillon par ms
-    uint16_t i_mA = EXCC_Booster::readCurrent_mA();
+    uint16_t i_mA = booster.readCurrent_mA();
     s_somme += i_mA;
     s_sommeCarres += (uint32_t)i_mA * i_mA;
     s_index++;

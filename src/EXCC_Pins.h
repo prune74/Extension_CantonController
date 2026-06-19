@@ -61,33 +61,30 @@ static const gpio_num_t PIN_WS2812_AH_OEIL = GPIO_NUM_22; // Œilleton AH
 static const gpio_num_t PIN_WS2812_DIR_H = GPIO_NUM_21;  // Direction mât H
 static const gpio_num_t PIN_WS2812_DIR_AH = GPIO_NUM_22; // Direction mât AH
 
-static const gpio_num_t PIN_WS2812_CANTON = GPIO_NUM_22; // Direction mât AH
+/* ============================================================
+   WS2812 — Booster (Canton + 3 LEDs Booster)
+   ------------------------------------------------------------
+   Strip 4 LEDs :
+     - LED 0 : Canton
+     - LED 1 : Booster état général
+     - LED 2 : Booster RailCom
+     - LED 3 : Booster télémétrie
+   ============================================================ */
+static const gpio_num_t PIN_WS2812_STATUS = GPIO_NUM_15;
+
 /* ============================================================
    PCA9685 — SORTIES (PWM)
    ------------------------------------------------------------
    Module 16 canaux utilisé pour :
-     - Feux directionnels (4 LED)
-     - LED canton (4 états)
      - Servos (3 aiguilles)
-     - LED erreur Booster
    ============================================================ */
+static const uint8_t PCA_SERVO_H_1 = 0;
+static const uint8_t PCA_SERVO_H_2 = 1;
+static const uint8_t PCA_SERVO_H_3 = 2;
 
-// LED erreur Booster (rouge)
-static const uint8_t PCA_BOOSTER_ERROR = 7;
-
-// LED canton (OCCUPÉ / LIBRE / MOUVEMENT / ERREUR)
-static const uint8_t PCA_CANTON_OCCUPE = 8;
-static const uint8_t PCA_CANTON_LIBRE = 9;
-static const uint8_t PCA_CANTON_MOUVEMENT = 10;
-static const uint8_t PCA_CANTON_ERREUR = 11;
-
-// Servos (3 aiguilles)
-static const uint8_t PCA_SERVO_H_1 = 12;
-static const uint8_t PCA_SERVO_H_2 = 13;
-static const uint8_t PCA_SERVO_H_3 = 14;
-static const uint8_t PCA_SERVO_AH_1 = 15;
-static const uint8_t PCA_SERVO_AH_2 = 16;
-static const uint8_t PCA_SERVO_AH_3 = 17;
+static const uint8_t PCA_SERVO_AH_1 = 3;
+static const uint8_t PCA_SERVO_AH_2 = 4;
+static const uint8_t PCA_SERVO_AH_3 = 5;
 
 /* ============================================================
    MCP23017 — ENTRÉES UNIQUEMENT
