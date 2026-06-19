@@ -215,10 +215,35 @@ void EXCC_Booster_WS2812::updateLedRailcom()
 {
     const BoosterTelemetry &t = s_booster.getTelemetry();
 
+    uint32_t now = millis();
+    uint32_t lastCutout = EXCC_CanBooster::lastCutoutMs();
+    bool cutoutActive = EXCC_CanBooster::isCutoutActive();
+    bool cutoutOk = (now - lastCutout < 50);
+
+    // 1) Priorité : adresse RailCom détectée
     if (t.railcomAddress != BoosterConstants::RAILCOM_NO_ADDRESS)
-        *LED_RAILCOM = (millis() & 100) ? CRGB::White : CRGB::Black;
-    else
-        *LED_RAILCOM = CRGB::Black;
+    {
+        // Violet clignotant (adresse RailCom)
+        *LED_RAILCOM = (millis() & 100) ? CRGB(150, 0, 255) : CRGB::Black;
+        return;
+    }
+
+    // 2) Cutout actif → blanc
+    if (cutoutActive)
+    {
+        *LED_RAILCOM = CRGB::White;
+        return;
+    }
+
+    // 3) Cutout OK mais fermé → bleu sombre
+    if (cutoutOk)
+    {
+        *LED_RAILCOM = CRGB(0, 0, 20);
+        return;
+    }
+
+    // 4) Cutout KO → rouge
+    *LED_RAILCOM = CRGB::Red;
 }
 
 // ---------------------------------------------------------------------------

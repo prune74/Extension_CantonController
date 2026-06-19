@@ -11,11 +11,6 @@ extern EXCC_Booster_WS2812 booster;
  * ============================================================================
  *  SECTION : Configuration CAN
  * ============================================================================
- *  Le bus CAN Booster utilise CanUniversal.
- *  EXCC_CanConfig contient :
- *      - vitesse
- *      - broches
- *      - type de driver (TWAI interne ou MCP2515)
  */
 static EXCC_CanConfig canConfig;
 
@@ -23,16 +18,6 @@ static EXCC_CanConfig canConfig;
  * ============================================================================
  *  SECTION : État interne RailCom
  * ============================================================================
- *  Le cutout est annoncé par le Master via la trame CAN :
- *
- *      ID = 0x101
- *      data[0] = 1 → début cutout
- *      data[0] = 0 → fin cutout
- *
- *  EXCC doit :
- *      - appeler onCutoutStart() au début
- *      - appeler onCutoutEnd()   à la fin
- *      - activer feedRailcomSample() dans le timer HF
  */
 static bool s_cutoutActive = false;
 
@@ -40,21 +25,22 @@ static bool s_cutoutActive = false;
  * ============================================================================
  *  SECTION : Timestamp activité CAN
  * ============================================================================
- *  Utilisé pour la LED CAN (WS2812 Status).
- *  Mis à jour à chaque trame reçue.
  */
 static uint32_t s_lastCanRxMs = 0;
 
 /*
  * ============================================================================
+ *  SECTION : Timestamp cutout global
+ * ============================================================================
+ *  Mis à jour à chaque trame 0x101 (début ou fin de cutout).
+ *  Utilisé pour la LED RailCom (état global du cutout).
+ */
+static uint32_t s_lastCutoutMs = 0;
+
+/*
+ * ============================================================================
  *  EXCC_CanBooster::begin()
  * ============================================================================
- *  Initialise le bus CAN Booster.
- *
- *  CanInit::begin() :
- *      - détecte automatiquement le driver (TWAI / MCP2515)
- *      - configure la vitesse
- *      - prépare CanBus::bus(0) pour RX/TX
  */
 void EXCC_CanBooster::begin()
 {
@@ -65,10 +51,6 @@ void EXCC_CanBooster::begin()
  * ============================================================================
  *  EXCC_CanBooster::process()
  * ============================================================================
- *  Boucle de réception CAN.
- *
- *  Appelée toutes les 1 ms par EXCC_BoosterCore.
- *  Elle lit toutes les trames disponibles sur le bus 0.
  */
 void EXCC_CanBooster::process()
 {
@@ -76,7 +58,7 @@ void EXCC_CanBooster::process()
 
     while (CanBus::bus(0).receive(msg))
     {
-        s_lastCanRxMs = millis();   // <<< Activité CAN détectée
+        s_lastCanRxMs = millis();   // Activité CAN détectée
         handleFrame(msg);
     }
 }
@@ -85,25 +67,6 @@ void EXCC_CanBooster::process()
  * ============================================================================
  *  EXCC_CanBooster::handleFrame()
  * ============================================================================
- *  Analyse et traitement d’une trame CAN Booster.
- *
- *  Rôle :
- *      - détecter le cutout (RailCom)
- *      - transmettre la trame à la bibliothèque CanDccBooster
- *
- *  IMPORTANT :
- *      La bibliothèque CanDccBooster gère :
- *          - DCC logique
- *          - cutout matériel
- *          - sécurité
- *          - télémétrie
- *
- *      MAIS elle n’appelle PAS les hooks RailCom :
- *          onCutoutStart()
- *          feedRailcomSample()
- *          onCutoutEnd()
- *
- *      → C’est EXCC qui doit les appeler.
  */
 void EXCC_CanBooster::handleFrame(const CanMsg &msg)
 {
@@ -113,6 +76,9 @@ void EXCC_CanBooster::handleFrame(const CanMsg &msg)
     if (msg.id == 0x101 && msg.dlc >= 1)
     {
         bool active = (msg.data[0] != 0);
+
+        // Mise à jour du timestamp cutout global
+        s_lastCutoutMs = millis();
 
         // Début du cutout
         if (active && !s_cutoutActive)
@@ -139,10 +105,6 @@ void EXCC_CanBooster::handleFrame(const CanMsg &msg)
  * ============================================================================
  *  EXCC_CanBooster::isCutoutActive()
  * ============================================================================
- *  Fonction utilitaire utilisée par le timer HF RailCom.
- *
- *  Elle permet au timer d’appeler feedRailcomSample()
- *  uniquement pendant la fenêtre de cutout.
  */
 bool EXCC_CanBooster::isCutoutActive()
 {
@@ -153,9 +115,19 @@ bool EXCC_CanBooster::isCutoutActive()
  * ============================================================================
  *  EXCC_CanBooster::lastCanRxMs()
  * ============================================================================
- *  Utilisé par la LED CAN (WS2812 Status).
  */
 uint32_t EXCC_CanBooster::lastCanRxMs()
 {
     return s_lastCanRxMs;
+}
+
+/*
+ * ============================================================================
+ *  EXCC_CanBooster::lastCutoutMs()
+ * ============================================================================
+ *  Utilisé pour la LED RailCom (état global du cutout).
+ */
+uint32_t EXCC_CanBooster::lastCutoutMs()
+{
+    return s_lastCutoutMs;
 }

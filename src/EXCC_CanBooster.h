@@ -79,6 +79,15 @@ public:
      */
     static uint32_t lastCanRxMs();
 
+    /*
+     * ------------------------------------------------------------------------
+     *  lastCutoutMs()
+     * ------------------------------------------------------------------------
+     *  Timestamp du dernier cutout (début ou fin).
+     *  Utilisé pour la LED RailCom (état global du cutout).
+     */
+    static uint32_t lastCutoutMs();
+
 private:
     /*
      * ------------------------------------------------------------------------
