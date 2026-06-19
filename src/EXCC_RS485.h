@@ -1,0 +1,17 @@
+#pragma once
+
+#include <stdint.h>
+#include <HardwareSerial.h>
+#include <driver/gpio.h>
+
+class EXCC_RS485
+{
+public:
+    static void begin(HardwareSerial &serial,
+                      uint32_t baudrate,
+                      gpio_num_t pinDE_RE) noexcept;
+
+    static void send(const uint8_t *data, uint8_t len) noexcept;
+
+    static HardwareSerial &uart() noexcept;
+};
