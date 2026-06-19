@@ -14,12 +14,13 @@
  */
 
 #include "EXCC_Calibration.h"
-#include "EXCC_Booster_WS2812.h"
 #include "EXCC_Config.h"
-#include "EXCC_Main.h"
+#include "EXCC_Booster_WS2812.h"
 
-#include <Arduino.h>
 #include <math.h>
+#include <algorithm>
+
+extern EXCC_Booster_WS2812 booster;
 
 /* ============================================================
  * Variables internes
@@ -96,7 +97,7 @@ void EXCC_Calibration::process()
     {
         float moyenne = float(s_somme) / CALIB_N;
         float moyenneCarre = float(s_sommeCarres) / CALIB_N;
-        float variance = max(0.0f, moyenneCarre - moyenne * moyenne);
+        float variance = std::max(0.0f, moyenneCarre - moyenne * moyenne);
         float bruit = sqrtf(variance);
 
         s_seuilLibre_mA = uint16_t(moyenne + 3.0f * bruit);

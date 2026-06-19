@@ -4,7 +4,7 @@
 #error "Ce module doit être compilé pour ESP32 uniquement."
 #endif
 
-#include <Arduino.h>
+#include "driver/gpio.h"
 
 /*
  * ============================================================

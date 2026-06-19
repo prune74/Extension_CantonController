@@ -1,6 +1,5 @@
 #pragma once
-#include <Arduino.h>
-#include "EXCC_Pins.h" // Broches physiques
+#include "EXCC_Pins.h"
 
 /*
  * ============================================================

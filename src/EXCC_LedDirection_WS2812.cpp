@@ -1,5 +1,5 @@
 #include "EXCC_LedDirection_WS2812.h"
-#include "EXCC_Config.h"
+#include <FastLED.h>
 
 // ---------------------------------------------------------------------------
 // Protection plateforme : ce module nécessite l'ESP32

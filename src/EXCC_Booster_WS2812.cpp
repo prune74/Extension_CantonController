@@ -4,7 +4,6 @@
 #include "CanDccBooster.h"
 #include "EXCC_CanBooster.h"
 #include "EXCC_Calibration.h"
-#include "EXCC_Config.h"
 #include "EXCC_UartTx.h"
 #include "EXCC_Canton_WS2812.h"
 

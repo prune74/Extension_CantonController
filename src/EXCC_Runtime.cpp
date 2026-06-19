@@ -24,7 +24,6 @@
 #include "EXCC_Signaux_WS2812.h"
 #include "EXCC_Canton_WS2812.h"
 #include "EXCC_Switches.h"
-#include "EXCC_Main.h"
 
 #include <FastLED.h>
 #include <Arduino.h>

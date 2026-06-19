@@ -19,7 +19,6 @@
  */
 
 #include "EXCC_Callbacks.h"
-#include "EXCC_Main.h"
 
 #include "EXCC_Signaux_WS2812.h"
 #include "EXCC_LedDirection_WS2812.h"

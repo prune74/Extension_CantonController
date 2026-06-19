@@ -1,7 +1,8 @@
 #include "EXCC_RS485.h"
 #include "EXCC_Pins.h"
 
-#include <Arduino.h>
+#include <Arduino.h>        // pinMode, digitalWrite, HardwareSerial
+#include <driver/gpio.h>    // gpio_num_t, GPIO_NUM_NC
 
 // ---------------------------------------------------------------------------
 // Protection plateforme : ce module nécessite l'ESP32

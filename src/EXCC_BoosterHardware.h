@@ -5,6 +5,7 @@
 #endif
 
 #include <stdint.h>
+#include "EXCC_Config.h"  
 #include "CanDccBoosterHardware.h"
 
 class EXCC_BoosterHardware : public CanDccBoosterHardware

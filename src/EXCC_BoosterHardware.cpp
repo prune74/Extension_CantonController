@@ -1,6 +1,5 @@
 #include "EXCC_BoosterHardware.h"
 #include "EXCC_Pins.h"
-#include "EXCC_Config.h"
 
 #include <Arduino.h>
 #include <driver/adc.h>

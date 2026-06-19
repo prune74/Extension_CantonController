@@ -5,6 +5,7 @@
 #endif
 
 #include <stdint.h>
+#include "EXCC_Config.h"
 
 class BoosterTelemetry;   // Forward declaration
 

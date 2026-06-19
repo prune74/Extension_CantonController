@@ -33,7 +33,6 @@
 #include "EXCC_Servo.h"
 #include "EXCC_Pins.h"
 #include "EXCC_Config.h"
-#include "EXCC_Switches.h"
 
 #include <Arduino.h>
 #include <Adafruit_PWMServoDriver.h>

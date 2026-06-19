@@ -1,5 +1,8 @@
 #include "EXCC_Quadrature.h"
-#include <Arduino.h>
+
+#include <Arduino.h>   
+#include <freertos/FreeRTOS.h> 
+#include <freertos/queue.h>  
 
 // ---------------------------------------------------------------------------
 // Protection plateforme : ce module nécessite l'ESP32

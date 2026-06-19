@@ -5,7 +5,7 @@
 #endif
 
 #include <stdint.h>
-#include <HardwareSerial.h>
+#include <Arduino.h>   
 #include <driver/gpio.h>
 
 class EXCC_RS485

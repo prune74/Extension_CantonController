@@ -1,5 +1,4 @@
 #include "EXCC_Canton_WS2812.h"
-#include "EXCC_Config.h"
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------

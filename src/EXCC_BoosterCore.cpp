@@ -4,7 +4,6 @@
 #include "EXCC_Booster_WS2812.h"
 #include "EXCC_Calibration.h"
 #include "EXCC_UartTx.h"
-#include "EXCC_Config.h"
 #include "EXCC_Main.h"
 
 #include <Arduino.h>

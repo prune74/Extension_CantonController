@@ -6,6 +6,7 @@
 
 #include <FastLED.h>
 #include <stdint.h>
+#include "EXCC_Config.h"
 
 /*
  * EXCC_Canton_WS2812

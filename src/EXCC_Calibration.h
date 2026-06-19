@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "EXCC_Config.h"
 
 /*
  * Module : EXCC_Calibration

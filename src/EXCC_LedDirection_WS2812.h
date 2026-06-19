@@ -5,6 +5,8 @@
 #endif
 
 #include <FastLED.h>
+#include <stdint.h>
+#include "EXCC_Config.h"
 
 class EXCC_LedDirection_WS2812
 {

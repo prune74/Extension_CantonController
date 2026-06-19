@@ -1,4 +1,5 @@
 #include "EXCC_Compteur.h"
+#include "EXCC_Quadrature.h"
 
 /*
  * ============================================================

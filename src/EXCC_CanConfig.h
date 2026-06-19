@@ -4,6 +4,8 @@
 #error "Ce module doit être compilé pour ESP32 uniquement."
 #endif
 
+#include <stdint.h>
+#include "EXCC_Config.h"
 #include "CanConfig.h"
 #include "EXCC_Pins.h"
 

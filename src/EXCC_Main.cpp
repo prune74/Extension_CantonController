@@ -15,9 +15,10 @@
 
 #include "EXCC_Quadrature.h"
 #include "EXCC_Compteur.h"
-#include "EXCC_Booster_WS2812.h"   // Booster
-#include "EXCC_StatusLed.h"        // Nouveau : gestion LEDs Status
+#include "EXCC_Booster_WS2812.h"
+#include "EXCC_StatusLed.h"
 
+#include <Adafruit_PWMServoDriver.h>
 #include <FastLED.h>
 #include <Arduino.h>
 

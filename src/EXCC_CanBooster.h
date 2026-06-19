@@ -5,6 +5,7 @@
 #endif
 
 #include <stdint.h>
+#include "EXCC_Config.h"
 #include "CanMsg.h"
 
 /*

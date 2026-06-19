@@ -7,12 +7,12 @@
 #include <stdint.h>
 #include <Adafruit_PWMServoDriver.h>
 
-#include "EXCC_Signaux_WS2812.h"
-#include "EXCC_LedDirection_WS2812.h"
-#include "EXCC_Canton_WS2812.h"
-#include "EXCC_Quadrature.h"
-#include "EXCC_Compteur.h"
-#include "EXCC_Booster_WS2812.h"
+// Forward declarations (évite les includes lourds)
+class EXCC_Signaux_WS2812;
+class EXCC_LedDirection_WS2812;
+class EXCC_Canton_WS2812;
+class EXCC_Quadrature;
+class EXCC_Booster_WS2812;
 
 /*
  * ============================================================
