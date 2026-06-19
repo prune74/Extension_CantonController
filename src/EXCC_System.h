@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 /*
  * ============================================================================
  *  EXCC_System — Version WS2812 (Gestion Canton 2026)

@@ -1,4 +1,9 @@
 #pragma once
+
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 #include <FastLED.h>
 #include <stdint.h>
 

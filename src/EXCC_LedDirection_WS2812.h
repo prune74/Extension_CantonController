@@ -1,4 +1,9 @@
 #pragma once
+
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 #include <FastLED.h>
 
 class EXCC_LedDirection_WS2812

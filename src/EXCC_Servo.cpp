@@ -38,6 +38,13 @@
 #include <Arduino.h>
 #include <Adafruit_PWMServoDriver.h>
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 /*
  * ============================================================
  *  EXCC_Servo.cpp — Version améliorée 2026

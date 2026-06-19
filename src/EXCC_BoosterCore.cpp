@@ -12,6 +12,13 @@
 #include <freertos/task.h>
 #include <esp_task_wdt.h>
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 /*
  * ============================================================================
  *  SECTION : Gestion de la tâche FreeRTOS du Booster

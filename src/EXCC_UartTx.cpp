@@ -4,6 +4,13 @@
 
 #include <Arduino.h>
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 /*
  * EXCC_UartTx.cpp — Trames UART envoyées par l’EXCC vers le CC.
  *

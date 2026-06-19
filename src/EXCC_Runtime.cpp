@@ -29,6 +29,13 @@
 #include <FastLED.h>
 #include <Arduino.h>
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 // Instances globales déclarées dans EXCC_Main.cpp
 extern EXCC_Signaux_WS2812 signauxH;
 extern EXCC_Signaux_WS2812 signauxAH;

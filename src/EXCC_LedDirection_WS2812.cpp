@@ -1,6 +1,13 @@
 #include "EXCC_LedDirection_WS2812.h"
 #include "EXCC_Config.h"
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 EXCC_LedDirection_WS2812::EXCC_LedDirection_WS2812(CRGB *ledArray,
                                                    uint8_t idx0,
                                                    uint8_t idx1,

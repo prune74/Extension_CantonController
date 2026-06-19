@@ -2,6 +2,13 @@
 #include "EXCC_Config.h"
 #include <Arduino.h>
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 /*
  * Module : EXCC_Canton
  * Rôle   : Gestion des LEDs d’état du canton via PCA9685.

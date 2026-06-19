@@ -28,6 +28,13 @@
 #include "EXCC_Config.h"
 #include "esp_task_wdt.h"
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 static TaskHandle_t exsaTaskHandle = nullptr;
 
 // Timeout watchdog (en secondes)

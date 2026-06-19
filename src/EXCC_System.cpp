@@ -25,6 +25,13 @@
 #include <Adafruit_PWMServoDriver.h>
 #include <FastLED.h>
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 // Instances globales déclarées dans EXCC_Main.cpp
 extern Adafruit_PWMServoDriver g_pca9685;
 

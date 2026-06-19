@@ -5,6 +5,13 @@
 #include <Arduino.h>
 #include <driver/adc.h>
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 static constexpr int LEDC_CHANNEL = 0;
 
 /*

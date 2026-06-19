@@ -1,6 +1,13 @@
 #include "EXCC_Quadrature.h"
 #include <Arduino.h>
 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 /*
  * ============================================================
  *  Pointeurs internes pour les ISR

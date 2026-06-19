@@ -1,4 +1,9 @@
 #pragma once
+
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 #include <Arduino.h>
 #include <FastLED.h>
 #include "Exploration_Protocol.h"   // ExsaAspect

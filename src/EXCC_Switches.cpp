@@ -30,6 +30,13 @@
  *   - La sécurité est entièrement locale : même si le CC plante,
  *     EXCC_Switches continue de surveiller les aiguilles.
  */
+ 
+// ---------------------------------------------------------------------------
+// Protection plateforme : ce module nécessite l'ESP32
+// ---------------------------------------------------------------------------
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
 
 #include "EXCC_Switches.h"
 #include "EXCC_Pins.h"

@@ -1,4 +1,9 @@
 #pragma once
+
+#ifndef ESP32
+#error "Ce module doit être compilé pour ESP32 uniquement."
+#endif
+
 #include <stdint.h>
 #include <Adafruit_MCP23X17.h>
 #include "EXCC_Config.h"
