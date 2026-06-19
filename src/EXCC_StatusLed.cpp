@@ -10,12 +10,14 @@ extern EXCC_Booster_WS2812 booster;
 CRGB *EXCC_StatusLed::LED_CAN     = nullptr;
 CRGB *EXCC_StatusLed::LED_RAILCOM = nullptr;
 CRGB *EXCC_StatusLed::LED_TELEM   = nullptr;
+CRGB *EXCC_StatusLed::LED_STATE   = nullptr;   // <<< NOUVEAU
 
 void EXCC_StatusLed::begin(CRGB *strip)
 {
     LED_CAN     = &strip[4];
     LED_RAILCOM = &strip[2];
     LED_TELEM   = &strip[3];
+    LED_STATE   = &strip[1];   // <<< LED 1 état général
 }
 
 void EXCC_StatusLed::update()
@@ -23,6 +25,7 @@ void EXCC_StatusLed::update()
     updateLedCan();
     updateLedRailcom();
     updateLedTelemetry();
+    updateLedState();          // <<< NOUVEAU
 }
 
 void EXCC_StatusLed::updateLedCan()
@@ -48,10 +51,10 @@ void EXCC_StatusLed::updateLedRailcom()
 
     const BoosterTelemetry &t = booster.getTelemetry();
 
-    uint32_t now       = millis();
+    uint32_t now        = millis();
     uint32_t lastCutout = EXCC_CanBooster::lastCutoutMs();
-    bool cutoutActive  = EXCC_CanBooster::isCutoutActive();
-    bool cutoutOk      = (now - lastCutout < 50);
+    bool cutoutActive   = EXCC_CanBooster::isCutoutActive();
+    bool cutoutOk       = (now - lastCutout < 50);
 
     if (t.railcomAddress != BoosterConstants::RAILCOM_NO_ADDRESS)
     {
@@ -100,4 +103,55 @@ void EXCC_StatusLed::updateLedTelemetry()
     }
 
     *LED_TELEM = CRGB::Green;
+}
+
+void EXCC_StatusLed::updateLedState()
+{
+    if (!LED_STATE)
+        return;
+
+    const BoosterTelemetry &t = booster.getTelemetry();
+
+    ExccBoosterEtat etat;
+
+    if (!booster.isEnabled())
+        etat = BOOSTER_OFF;
+    else if (t.voltage_mV < EXCC_BOOSTER_MIN_TENSION_mV)
+        etat = BOOSTER_SOUS_TENSION;
+    else if (t.current_mA > EXCC_BOOSTER_MAX_COURANT_mA)
+        etat = BOOSTER_COURT_CIRCUIT;
+    else if (t.error == BoosterError::HARDWARE_FAULT)
+        etat = BOOSTER_SURCHAUFFE;
+    else
+        etat = BOOSTER_OK;
+
+    switch (etat)
+    {
+    case BOOSTER_OFF:
+        *LED_STATE = CRGB::Red;
+        break;
+
+    case BOOSTER_OK:
+        *LED_STATE = CRGB::Green;
+        break;
+
+    case BOOSTER_COURT_CIRCUIT:
+        *LED_STATE = (millis() & 200) ? CRGB::Red : CRGB::Black;
+        break;
+
+    case BOOSTER_SOUS_TENSION:
+        *LED_STATE = CRGB::Blue;
+        break;
+
+    case BOOSTER_SURCHAUFFE:
+    {
+        uint8_t p = sin8(millis() >> 3);
+        *LED_STATE = CRGB(p, 0, p);
+        break;
+    }
+
+    case BOOSTER_ERREUR:
+        *LED_STATE = (millis() & 300) ? CRGB::Red : CRGB::Purple;
+        break;
+    }
 }

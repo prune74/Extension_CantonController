@@ -25,9 +25,12 @@ public:
     // Getter utilisé par EXCC_StatusLed
     const BoosterTelemetry& getTelemetry() const;
 
+    // <<< AJOUT ESSENTIEL POUR LED 1
+    bool isEnabled() const { return m_enabled; }
+
 private:
     void updateOccupation(uint16_t courant_mA);
-    void updateLedState();
+    void updateLedState();   // sera supprimée après migration LED 1
 
 private:
     bool m_enabled;

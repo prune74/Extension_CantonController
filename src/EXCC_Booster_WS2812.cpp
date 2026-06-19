@@ -8,7 +8,6 @@
 #include "EXCC_UartTx.h"
 #include "EXCC_Canton_WS2812.h"
 
-#include <FastLED.h>
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------
@@ -18,12 +17,8 @@ static EXCC_BoosterHardware s_hw;
 static BoosterConfig s_cfg;
 static CanDccBooster s_booster(s_hw, s_cfg);
 
-// LEDs WS2812 (déclarées dans EXCC_Main.cpp)
-extern CRGB g_wsStrip[5];
+// Canton (LED 0)
 extern EXCC_Canton_WS2812 cantonWS;
-
-// Seule LED encore gérée ici : LED 1 (état général)
-static CRGB *LED_STATE = &g_wsStrip[1];
 
 // ---------------------------------------------------------------------------
 //  Constructeur
@@ -44,14 +39,12 @@ void EXCC_Booster_WS2812::begin()
 {
     s_hw.begin();
 
-    s_cfg.maxCurrent_mA = EXCC_BOOSTER_MAX_COURANT_mA;
-    s_cfg.minVoltage_mV = EXCC_BOOSTER_MIN_TENSION_mV;
+    s_cfg.maxCurrent_mA   = EXCC_BOOSTER_MAX_COURANT_mA;
+    s_cfg.minVoltage_mV   = EXCC_BOOSTER_MIN_TENSION_mV;
     s_cfg.telemetryEnabled = true;
-    s_cfg.railcomEnabled = true;
+    s_cfg.railcomEnabled   = true;
 
     s_booster.setConfig(s_cfg);
-
-    *LED_STATE = CRGB::Black;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,8 +64,6 @@ void EXCC_Booster_WS2812::setEnabled(bool enabled)
         m_lastOccupe   = false;
 
         cantonWS.setOccupation(false);
-
-        *LED_STATE = CRGB::Red;
     }
 }
 
@@ -98,8 +89,6 @@ void EXCC_Booster_WS2812::update()
         EXCC_UartTx::envoyerRailcom(0, t.railcomAddress);
 
     updateOccupation(m_current_mA);
-
-    updateLedState();   // <<< seule LED encore gérée ici
 }
 
 // ---------------------------------------------------------------------------
@@ -111,7 +100,7 @@ void EXCC_Booster_WS2812::onCanMessage(uint32_t id, const uint8_t *data, uint8_t
 }
 
 // ---------------------------------------------------------------------------
-//  RailCom hooks (LED supprimée)
+//  RailCom hooks
 // ---------------------------------------------------------------------------
 void EXCC_Booster_WS2812::onCutoutStart()
 {
@@ -148,55 +137,6 @@ void EXCC_Booster_WS2812::updateOccupation(uint16_t courant_mA)
         m_lastOccupe = occupe;
         EXCC_UartTx::envoyerOccupation(occupe);
         cantonWS.setOccupation(occupe);
-    }
-}
-
-// ---------------------------------------------------------------------------
-//  LED 1 : état général
-// ---------------------------------------------------------------------------
-void EXCC_Booster_WS2812::updateLedState()
-{
-    ExccBoosterEtat etat;
-
-    if (!m_enabled)
-        etat = BOOSTER_OFF;
-    else if (m_voltage_mV < EXCC_BOOSTER_MIN_TENSION_mV)
-        etat = BOOSTER_SOUS_TENSION;
-    else if (m_current_mA > EXCC_BOOSTER_MAX_COURANT_mA)
-        etat = BOOSTER_COURT_CIRCUIT;
-    else if (m_faultThermal)
-        etat = BOOSTER_SURCHAUFFE;
-    else
-        etat = BOOSTER_OK;
-
-    switch (etat)
-    {
-    case BOOSTER_OFF:
-        *LED_STATE = CRGB::Red;
-        break;
-
-    case BOOSTER_OK:
-        *LED_STATE = CRGB::Green;
-        break;
-
-    case BOOSTER_COURT_CIRCUIT:
-        *LED_STATE = (millis() & 200) ? CRGB::Red : CRGB::Black;
-        break;
-
-    case BOOSTER_SOUS_TENSION:
-        *LED_STATE = CRGB::Blue;
-        break;
-
-    case BOOSTER_SURCHAUFFE:
-    {
-        uint8_t p = sin8(millis() >> 3);
-        *LED_STATE = CRGB(p, 0, p);
-        break;
-    }
-
-    case BOOSTER_ERREUR:
-        *LED_STATE = (millis() & 300) ? CRGB::Red : CRGB::Purple;
-        break;
     }
 }
 

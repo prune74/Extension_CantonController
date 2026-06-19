@@ -11,8 +11,10 @@ private:
     static void updateLedCan();
     static void updateLedRailcom();
     static void updateLedTelemetry();
+    static void updateLedState();
 
     static CRGB *LED_CAN;
     static CRGB *LED_RAILCOM;
     static CRGB *LED_TELEM;
+    static CRGB *LED_STATE;
 };
