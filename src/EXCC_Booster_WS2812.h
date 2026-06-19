@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 
+class BoosterTelemetry;   // Forward declaration
 class EXCC_Booster_WS2812
 {
 public:
@@ -19,6 +20,9 @@ public:
     uint16_t readCurrent_mA() const;
     uint16_t readVoltage_mV() const;
     bool isThermalFault() const;
+
+    // <<< AJOUT ESSENTIEL POUR EXCC_StatusLed
+    const BoosterTelemetry& getTelemetry() const;
 
 private:
     void updateOccupation(uint16_t courant_mA);

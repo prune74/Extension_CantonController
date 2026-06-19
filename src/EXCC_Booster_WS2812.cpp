@@ -19,7 +19,7 @@ static BoosterConfig s_cfg;
 static CanDccBooster s_booster(s_hw, s_cfg);
 
 // LEDs WS2812 (déclarées dans EXCC_Main.cpp)
-extern CRGB g_wsStrip[4];
+extern CRGB g_wsStrip[5];
 extern EXCC_Canton_WS2812 cantonWS;
 
 static CRGB *LED_STATE = &g_wsStrip[1];
@@ -52,9 +52,9 @@ void EXCC_Booster_WS2812::begin()
 
     s_booster.setConfig(s_cfg);
 
-    *LED_STATE = CRGB::Black;
+    *LED_STATE   = CRGB::Black;
     *LED_RAILCOM = CRGB::Black;
-    *LED_TELEM = CRGB::Black;
+    *LED_TELEM   = CRGB::Black;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,16 +68,16 @@ void EXCC_Booster_WS2812::setEnabled(bool enabled)
     {
         s_hw.disableOutput();
 
-        m_current_mA = 0;
-        m_voltage_mV = 0;
+        m_current_mA   = 0;
+        m_voltage_mV   = 0;
         m_faultThermal = false;
-        m_lastOccupe = false;
+        m_lastOccupe   = false;
 
         cantonWS.setOccupation(false);
 
-        *LED_STATE = CRGB::Red;
+        *LED_STATE   = CRGB::Red;
         *LED_RAILCOM = CRGB::Black;
-        *LED_TELEM = CRGB::Black;
+        *LED_TELEM   = CRGB::Black;
     }
 }
 
@@ -95,8 +95,8 @@ void EXCC_Booster_WS2812::update()
     s_booster.update();
 
     const BoosterTelemetry &t = s_booster.getTelemetry();
-    m_current_mA = t.current_mA;
-    m_voltage_mV = t.voltage_mV;
+    m_current_mA   = t.current_mA;
+    m_voltage_mV   = t.voltage_mV;
     m_faultThermal = (t.error == BoosterError::HARDWARE_FAULT);
 
     if (t.railcomAddress != BoosterConstants::RAILCOM_NO_ADDRESS)
@@ -141,7 +141,7 @@ void EXCC_Booster_WS2812::feedRailcomSample()
 // ---------------------------------------------------------------------------
 void EXCC_Booster_WS2812::updateOccupation(uint16_t courant_mA)
 {
-    uint16_t seuilLibre = EXCC_Calibration::getSeuilLibre();
+    uint16_t seuilLibre  = EXCC_Calibration::getSeuilLibre();
     uint16_t seuilOccupe = EXCC_Calibration::getSeuilOccupe();
 
     bool occupe;
@@ -215,15 +215,14 @@ void EXCC_Booster_WS2812::updateLedRailcom()
 {
     const BoosterTelemetry &t = s_booster.getTelemetry();
 
-    uint32_t now = millis();
+    uint32_t now       = millis();
     uint32_t lastCutout = EXCC_CanBooster::lastCutoutMs();
-    bool cutoutActive = EXCC_CanBooster::isCutoutActive();
-    bool cutoutOk = (now - lastCutout < 50);
+    bool cutoutActive  = EXCC_CanBooster::isCutoutActive();
+    bool cutoutOk      = (now - lastCutout < 50);
 
     // 1) Priorité : adresse RailCom détectée
     if (t.railcomAddress != BoosterConstants::RAILCOM_NO_ADDRESS)
     {
-        // Violet clignotant (adresse RailCom)
         *LED_RAILCOM = (millis() & 100) ? CRGB(150, 0, 255) : CRGB::Black;
         return;
     }
@@ -278,3 +277,8 @@ void EXCC_Booster_WS2812::updateLedTelemetry()
 uint16_t EXCC_Booster_WS2812::readCurrent_mA() const { return m_current_mA; }
 uint16_t EXCC_Booster_WS2812::readVoltage_mV() const { return m_voltage_mV; }
 bool EXCC_Booster_WS2812::isThermalFault() const { return m_faultThermal; }
+
+const BoosterTelemetry &EXCC_Booster_WS2812::getTelemetry() const
+{
+    return s_booster.getTelemetry();
+}
