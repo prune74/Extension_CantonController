@@ -107,7 +107,7 @@ void EXCC_Main::begin() noexcept
     FastLED.addLeds<WS2812B, PIN_WS2812_DIR_AH, GRB>(stripDIR_AH, 4);
 
     // Status (5 LEDs)
-    FastLED.addLeds<WS2812B, PIN_WS2812_STATUS, GRB>(g_wsStrip, 5);
+    FastLED.addLeds<WS2812B, PIN_WS2812_STATUS, GRB>(g_wsStrip, 6);
 
     // Efface toutes les LED au démarrage
     FastLED.clear(true);

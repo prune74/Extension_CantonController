@@ -19,7 +19,7 @@
 #include "EXCC_Config.h"
 #include "Exploration_Protocol.h"
 
-#include "EXCC_Booster_WS2812.h"   // <-- NOUVEAU MODULE
+#include "EXCC_Booster_WS2812.h"
 
 #include <Arduino.h>
 #include <Adafruit_PWMServoDriver.h>

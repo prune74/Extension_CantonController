@@ -1,23 +1,28 @@
 #include "EXCC_StatusLed.h"
 #include "EXCC_CanBooster.h"
 #include "EXCC_Booster_WS2812.h"
+#include "Exploration_Protocol.h"
+#include "EXCC_Switches.h"
 #include "CanDccBooster.h"
 #include "EXCC_Config.h"
 #include <Arduino.h>
 
 extern EXCC_Booster_WS2812 booster;
 
-CRGB *EXCC_StatusLed::LED_CAN     = nullptr;
-CRGB *EXCC_StatusLed::LED_RAILCOM = nullptr;
-CRGB *EXCC_StatusLed::LED_TELEM   = nullptr;
-CRGB *EXCC_StatusLed::LED_STATE   = nullptr;   // <<< NOUVEAU
+// Pointeurs vers les LEDs du strip
+CRGB *EXCC_StatusLed::LED_CAN      = nullptr;
+CRGB *EXCC_StatusLed::LED_RAILCOM  = nullptr;
+CRGB *EXCC_StatusLed::LED_TELEM    = nullptr;
+CRGB *EXCC_StatusLed::LED_STATE    = nullptr;
+CRGB *EXCC_StatusLed::LED_SWITCHES = nullptr;
 
 void EXCC_StatusLed::begin(CRGB *strip)
 {
-    LED_CAN     = &strip[4];
-    LED_RAILCOM = &strip[2];
-    LED_TELEM   = &strip[3];
-    LED_STATE   = &strip[1];   // <<< LED 1 état général
+    LED_CAN      = &strip[4];
+    LED_RAILCOM  = &strip[2];
+    LED_TELEM    = &strip[3];
+    LED_STATE    = &strip[1];
+    LED_SWITCHES = &strip[5];   // LED 5 = Switches (diagnostic aiguilles)
 }
 
 void EXCC_StatusLed::update()
@@ -25,9 +30,13 @@ void EXCC_StatusLed::update()
     updateLedCan();
     updateLedRailcom();
     updateLedTelemetry();
-    updateLedState();          // <<< NOUVEAU
+    updateLedState();
+    updateLedSwitches();   // <<< NOUVEAU
 }
 
+/* ============================================================
+ * LED CAN
+ * ============================================================ */
 void EXCC_StatusLed::updateLedCan()
 {
     if (!LED_CAN)
@@ -44,6 +53,9 @@ void EXCC_StatusLed::updateLedCan()
         *LED_CAN = CRGB::Red;
 }
 
+/* ============================================================
+ * LED RailCom
+ * ============================================================ */
 void EXCC_StatusLed::updateLedRailcom()
 {
     if (!LED_RAILCOM)
@@ -77,6 +89,9 @@ void EXCC_StatusLed::updateLedRailcom()
     *LED_RAILCOM = CRGB::Red;
 }
 
+/* ============================================================
+ * LED Télémétrie
+ * ============================================================ */
 void EXCC_StatusLed::updateLedTelemetry()
 {
     if (!LED_TELEM)
@@ -105,6 +120,9 @@ void EXCC_StatusLed::updateLedTelemetry()
     *LED_TELEM = CRGB::Green;
 }
 
+/* ============================================================
+ * LED État général Booster
+ * ============================================================ */
 void EXCC_StatusLed::updateLedState()
 {
     if (!LED_STATE)
@@ -153,5 +171,82 @@ void EXCC_StatusLed::updateLedState()
     case BOOSTER_ERREUR:
         *LED_STATE = (millis() & 300) ? CRGB::Red : CRGB::Purple;
         break;
+    }
+}
+
+/* ============================================================
+ * LED Switches — Diagnostic aiguilles (Variante 4D répétitive)
+ * ============================================================ */
+void EXCC_StatusLed::updateLedSwitches()
+{
+    if (!LED_SWITCHES)
+        return;
+
+    static uint8_t flashCount = 0;
+    static uint8_t flashesToDo = 0;
+    static uint32_t timer = 0;
+    static bool ledOn = false;
+
+    uint32_t now = millis();
+
+    uint8_t worst = EXCC_Switches::getWorstState();
+    bool moving = EXCC_Switches::anyMovement();
+
+    // OK
+    if (worst == PROTO_ETAT_OK && !moving)
+    {
+        *LED_SWITCHES = CRGB::Green;
+        flashCount = 0;
+        flashesToDo = 0;
+        return;
+    }
+
+    // Mouvement
+    if (worst == PROTO_ETAT_OK && moving)
+    {
+        *LED_SWITCHES = CRGB::Orange;
+        flashCount = 0;
+        flashesToDo = 0;
+        return;
+    }
+
+    // Erreurs
+    if (worst == PROTO_ETAT_ERREUR)
+        flashesToDo = 1;   // INDET / INCOHÉRENT
+    else if (worst == PROTO_ETAT_BLOQUE)
+        flashesToDo = 3;   // BLOQUÉ
+
+    const uint16_t FLASH_ON_MS  = 150;
+    const uint16_t FLASH_OFF_MS = 150;
+    const uint16_t PAUSE_MS     = 600;
+
+    if (flashCount < flashesToDo)
+    {
+        if (!ledOn && now - timer >= FLASH_OFF_MS)
+        {
+            *LED_SWITCHES = CRGB::Red;
+            ledOn = true;
+            timer = now;
+        }
+        else if (ledOn && now - timer >= FLASH_ON_MS)
+        {
+            *LED_SWITCHES = CRGB::Black;
+            ledOn = false;
+            timer = now;
+            flashCount++;
+        }
+    }
+    else
+    {
+        if (now - timer >= PAUSE_MS)
+        {
+            flashCount = 0;
+            ledOn = false;
+            timer = now;
+        }
+        else
+        {
+            *LED_SWITCHES = CRGB::Black;
+        }
     }
 }

@@ -82,15 +82,15 @@ constexpr uint8_t EXCC_Switches::swDevie[AIG_COUNT] = {
     MCP_SW_AH_3_DEVIE  // Aiguille 5 → Anti‑Horaire
 };
 
-// Derniers états envoyés au CC (position + état sécurité)
-uint8_t EXCC_Switches::lastPos[AIG_COUNT] = {255, 255, 255};
-uint8_t EXCC_Switches::lastEtat[AIG_COUNT] = {255, 255, 255};
+// Derniers états envoyés au CC
+uint8_t  EXCC_Switches::lastPos[AIG_COUNT]  = {255, 255, 255};
+uint8_t  EXCC_Switches::lastEtat[AIG_COUNT] = {255, 255, 255};
 uint32_t EXCC_Switches::lastSendMs[AIG_COUNT] = {0, 0, 0};
 
-// Suivi du mouvement pour détection blocage
+// Suivi du mouvement
 uint32_t EXCC_Switches::moveStartMs[AIG_COUNT] = {0, 0, 0};
-uint32_t EXCC_Switches::moveMaxMs[AIG_COUNT] = {0, 0, 0};
-bool EXCC_Switches::movementActive[AIG_COUNT] = {false, false, false};
+uint32_t EXCC_Switches::moveMaxMs[AIG_COUNT]   = {0, 0, 0};
+bool     EXCC_Switches::movementActive[AIG_COUNT] = {false, false, false};
 
 /*
  * ============================================================
@@ -162,14 +162,6 @@ void EXCC_Switches::notifierMouvementDemarre(uint8_t idx)
 /*
  * ============================================================
  *  lirePosition()
- * ------------------------------------------------------------
- *  Déduit la position réelle à partir des micro‑switchs.
- *
- *  Cas possibles :
- *    - DROIT
- *    - DEVIÉ
- *    - INDET (aucun switch actif)
- *    - INCOHÉRENT (les deux actifs)
  * ============================================================
  */
 uint8_t EXCC_Switches::lirePosition(uint8_t idx)
@@ -183,17 +175,13 @@ uint8_t EXCC_Switches::lirePosition(uint8_t idx)
         return PROTO_POS_DEVIE;
     if (!droit && !devie)
         return PROTO_POS_INDET;
+
     return PROTO_POS_INCOHERENT;
 }
 
 /*
  * ============================================================
  *  lireEtat()
- * ------------------------------------------------------------
- *  Déduit l’état sécurité :
- *    - OK
- *    - BLOQUÉ (mouvement trop long)
- *    - ERREUR (INDET ou INCOHÉRENT)
  * ============================================================
  */
 uint8_t EXCC_Switches::lireEtat(uint8_t idx, uint8_t pos)
@@ -217,8 +205,6 @@ uint8_t EXCC_Switches::lireEtat(uint8_t idx, uint8_t pos)
 /*
  * ============================================================
  *  envoyerTrame()
- * ------------------------------------------------------------
- *  Envoie la trame 0x06 au CC.
  * ============================================================
  */
 void EXCC_Switches::envoyerTrame(uint8_t idx, uint8_t pos, uint8_t etat)
@@ -230,35 +216,70 @@ void EXCC_Switches::envoyerTrame(uint8_t idx, uint8_t pos, uint8_t etat)
 /*
  * ============================================================
  *  update()
- * ------------------------------------------------------------
- *  Boucle principale :
- *    - lit position + état
- *    - détecte fin de mouvement
- *    - envoie trame si changement ou périodiquement (200 ms)
  * ============================================================
  */
 void EXCC_Switches::update()
 {
     for (uint8_t i = 0; i < AIG_COUNT; i++)
     {
-        uint8_t pos = lirePosition(i);
+        uint8_t pos  = lirePosition(i);
         uint8_t etat = lireEtat(i, pos);
 
-        // Si position stable et OK → fin de mouvement
+        // Fin de mouvement si position stable et OK
         if ((pos == PROTO_POS_DROIT || pos == PROTO_POS_DEVIE) &&
             etat == PROTO_ETAT_OK)
         {
             movementActive[i] = false;
         }
 
-        bool changed = (pos != lastPos[i]) || (etat != lastEtat[i]);
+        bool changed  = (pos != lastPos[i]) || (etat != lastEtat[i]);
         bool periodic = (millis() - lastSendMs[i] >= 200);
 
         if (changed || periodic)
         {
             envoyerTrame(i, pos, etat);
-            lastPos[i] = pos;
+            lastPos[i]  = pos;
             lastEtat[i] = etat;
         }
     }
+}
+
+/*
+ * ============================================================
+ *  getWorstState()
+ *  → utilisé par EXCC_StatusLed (LED Switches 4D)
+ * ============================================================
+ */
+uint8_t EXCC_Switches::getWorstState()
+{
+    uint8_t worst = PROTO_ETAT_OK;
+
+    for (uint8_t i = 0; i < AIG_COUNT; i++)
+    {
+        uint8_t e = lastEtat[i];
+
+        if (e == PROTO_ETAT_BLOQUE)
+            return PROTO_ETAT_BLOQUE; // priorité max
+
+        if (e == PROTO_ETAT_ERREUR)
+            worst = PROTO_ETAT_ERREUR;
+    }
+
+    return worst;
+}
+
+/*
+ * ============================================================
+ *  anyMovement()
+ *  → indique si au moins une aiguille bouge
+ * ============================================================
+ */
+bool EXCC_Switches::anyMovement()
+{
+    for (uint8_t i = 0; i < AIG_COUNT; i++)
+    {
+        if (movementActive[i])
+            return true;
+    }
+    return false;
 }
