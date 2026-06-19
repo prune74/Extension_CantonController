@@ -62,14 +62,15 @@ static const gpio_num_t PIN_WS2812_DIR_H = GPIO_NUM_21;  // Direction mât H
 static const gpio_num_t PIN_WS2812_DIR_AH = GPIO_NUM_22; // Direction mât AH
 
 /* ============================================================
-   WS2812 — Booster (Canton + 3 LEDs Booster)
-   ------------------------------------------------------------
-   Strip 4 LEDs :
-     - LED 0 : Canton
-     - LED 1 : Booster état général
-     - LED 2 : Booster RailCom
-     - LED 3 : Booster télémétrie
-   ============================================================ */
+*  WS2812 — Status
+*  ------------------------------------------------------------
+*  Strip 5 LEDs :
+*  - LED 0 : Canton
+*  - LED 1 : Booster état général
+*  - LED 2 : Booster RailCom
+*  - LED 3 : Booster télémétrie
+*  - LED 4 : CAN (activité / erreur)
+*  ============================================================ */
 static const gpio_num_t PIN_WS2812_STATUS = GPIO_NUM_15;
 
 /* ============================================================

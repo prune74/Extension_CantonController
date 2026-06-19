@@ -38,6 +38,15 @@ static bool s_cutoutActive = false;
 
 /*
  * ============================================================================
+ *  SECTION : Timestamp activité CAN
+ * ============================================================================
+ *  Utilisé pour la LED CAN (WS2812 Status).
+ *  Mis à jour à chaque trame reçue.
+ */
+static uint32_t s_lastCanRxMs = 0;
+
+/*
+ * ============================================================================
  *  EXCC_CanBooster::begin()
  * ============================================================================
  *  Initialise le bus CAN Booster.
@@ -67,6 +76,7 @@ void EXCC_CanBooster::process()
 
     while (CanBus::bus(0).receive(msg))
     {
+        s_lastCanRxMs = millis();   // <<< Activité CAN détectée
         handleFrame(msg);
     }
 }
@@ -137,4 +147,15 @@ void EXCC_CanBooster::handleFrame(const CanMsg &msg)
 bool EXCC_CanBooster::isCutoutActive()
 {
     return s_cutoutActive;
+}
+
+/*
+ * ============================================================================
+ *  EXCC_CanBooster::lastCanRxMs()
+ * ============================================================================
+ *  Utilisé par la LED CAN (WS2812 Status).
+ */
+uint32_t EXCC_CanBooster::lastCanRxMs()
+{
+    return s_lastCanRxMs;
 }

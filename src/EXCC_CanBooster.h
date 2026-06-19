@@ -70,6 +70,15 @@ public:
      */
     static bool isCutoutActive();
 
+    /*
+     * ------------------------------------------------------------------------
+     *  lastCanRxMs()
+     * ------------------------------------------------------------------------
+     *  Timestamp de la dernière trame CAN reçue.
+     *  Utilisé pour la LED CAN (WS2812 Status).
+     */
+    static uint32_t lastCanRxMs();
+
 private:
     /*
      * ------------------------------------------------------------------------

@@ -38,8 +38,14 @@ CRGB stripDIR_H[4];
 // --- Direction AH ---
 CRGB stripDIR_AH[4];
 
-// --- Booster (Canton + 3 LEDs Booster) ---
-CRGB g_wsStrip[4]; // LED 0 = canton, LED 1/2/3 = booster
+// --- Status ---
+// Strip 5 LEDs :
+//   LED 0 : Canton
+//   LED 1 : Booster état général
+//   LED 2 : Booster RailCom
+//   LED 3 : Booster télémétrie
+//   LED 4 : CAN (activité / erreur)
+CRGB g_wsStrip[5];
 
 // ============================================================
 // PCA9685 global (servos uniquement)
