@@ -43,6 +43,21 @@ enum ExsaAspect : uint8_t
 };
 
 /* ============================================================
+ *  🟦 ENUM TYPE DE MATS
+ * ============================================================
+ */
+enum SignalProfil : uint8_t
+{
+    SIG_ABSENT = 0,    // Aucun signal présent physiquement
+
+    SIG_BAL = 1,       // 3 feux : Rouge / Jaune / Vert (BAL)
+    SIG_CARRE = 2,     // 5 feux : Carré + Œilleton
+    SIG_RAL = 3,       // 7 feux : Ralentissement 30/60
+    SIG_RAPPEL = 4,    // 9 feux : Rappel 30/60
+    SIG_MANOEUVRE = 5, // 2 feux : Blanc + Violet
+};
+
+/* ============================================================
  *  🟧 PROTOCOLE CC ↔ EXCC — Format série 0xAA / OPCODE
  * ============================================================
  */
