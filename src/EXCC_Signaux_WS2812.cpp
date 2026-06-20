@@ -8,7 +8,7 @@
 static constexpr uint32_t BLINK_PERIOD_MS = EXCC_WS2812_BLINK_PERIOD_MS;
 
 /* ============================================================================
- *  Constructeur
+ *  1) Constructeur
  * ==========================================================================*/
 EXCC_Signaux_WS2812::EXCC_Signaux_WS2812(CRGB *feux, uint8_t nbFeux,
                                          CRGB *oeilleton, uint8_t nbOeil,
@@ -20,24 +20,17 @@ EXCC_Signaux_WS2812::EXCC_Signaux_WS2812(CRGB *feux, uint8_t nbFeux,
       m_typeSNCF(SIG_ABSENT),
       m_position(0),
       m_layout(layoutInit),
-      m_aspectActuel(ASPECT_DEFAUT),
+      m_aspectActuel(ASPECT_MASQUE),
       m_vitesse(ExccVitesse::AUCUNE),
       m_lastBlinkMs(0),
       m_blinkState(true),
-      idxRouge(-1),
-      idxJaune(-1),
-      idxVert(-1),
-      idxCarre(-1),
-      idxBlanc(-1),
-      idxViolet(-1),
-      idxRal30_1(-1),
-      idxRal30_2(-1),
-      idxRal60_1(-1),
-      idxRal60_2(-1),
-      idxRappel30_1(-1),
-      idxRappel30_2(-1),
-      idxRappel60_1(-1),
-      idxRappel60_2(-1),
+      idxRouge(-1), idxJaune(-1),
+      idxVoieLibre(-1),   // VERT / BLANC
+      idxCarre(-1),       // ROUGE / VIOLET
+      idxRal30_1(-1), idxRal30_2(-1),
+      idxRal60_1(-1), idxRal60_2(-1),
+      idxRappel30_1(-1), idxRappel30_2(-1),
+      idxRappel60_1(-1), idxRappel60_2(-1),
       m_hasOeilleton(false),
       m_couleurOeilleton(CRGB::White)
 {
@@ -47,7 +40,7 @@ EXCC_Signaux_WS2812::EXCC_Signaux_WS2812(CRGB *feux, uint8_t nbFeux,
 }
 
 /* ============================================================================
- *  Éteindre toutes les LEDs
+ *  2) Éteindre toutes les LEDs
  * ==========================================================================*/
 void EXCC_Signaux_WS2812::eteindreTout() noexcept
 {
@@ -59,7 +52,7 @@ void EXCC_Signaux_WS2812::eteindreTout() noexcept
 }
 
 /* ============================================================================
- *  Allumer/éteindre une LED
+ *  3) Allumer/éteindre une LED
  * ==========================================================================*/
 void EXCC_Signaux_WS2812::setLed(int8_t index, bool on, const CRGB &color) noexcept
 {
@@ -74,7 +67,7 @@ void EXCC_Signaux_WS2812::setLed(int8_t index, bool on, const CRGB &color) noexc
 }
 
 /* ============================================================================
- *  Définir le type de mât
+ *  4) Définir le type de mât
  * ==========================================================================*/
 void EXCC_Signaux_WS2812::setType(uint8_t typeSNCF) noexcept
 {
@@ -83,8 +76,8 @@ void EXCC_Signaux_WS2812::setType(uint8_t typeSNCF) noexcept
     if (m_typeSNCF == SIG_ABSENT)
     {
         eteindreTout();
+        m_aspectActuel = ASPECT_MASQUE;
         m_vitesse = ExccVitesse::AUCUNE;
-        m_aspectActuel = ASPECT_DEFAUT;
         return;
     }
 
@@ -93,7 +86,7 @@ void EXCC_Signaux_WS2812::setType(uint8_t typeSNCF) noexcept
 }
 
 /* ============================================================================
- *  Définir la position
+ *  5) Définir la position
  * ==========================================================================*/
 void EXCC_Signaux_WS2812::setPosition(uint8_t pos) noexcept
 {
@@ -101,55 +94,55 @@ void EXCC_Signaux_WS2812::setPosition(uint8_t pos) noexcept
 }
 
 /* ============================================================================
- *  Mapping matériel selon le type de mât
+ *  6) Mapping matériel universel Discovery 2026
  * ==========================================================================*/
 void EXCC_Signaux_WS2812::rebuildMapping() noexcept
 {
-    idxRouge = idxJaune = idxVert = -1;
-    idxCarre = idxBlanc = idxViolet = -1;
+    idxRouge = idxJaune = -1;
+    idxVoieLibre = -1;
+    idxCarre = -1;
+
     idxRal30_1 = idxRal30_2 = -1;
     idxRal60_1 = idxRal60_2 = -1;
     idxRappel30_1 = idxRappel30_2 = -1;
     idxRappel60_1 = idxRappel60_2 = -1;
+
     m_hasOeilleton = false;
 
     switch (m_typeSNCF)
     {
     case SIG_BAL: // 3 feux
-        idxJaune = 0;
-        idxRouge = 1;
-        idxVert = 2;
+        idxJaune     = 0;
+        idxRouge     = 1;
+        idxVoieLibre = 2;   // VERT
         break;
 
-    case SIG_CARRE: // 5 feux
-        idxJaune = 0;
-        idxRouge = 1;
-        idxVert = 2;
-        
-        idxCarre = 3;
+    case SIG_CARRE: // 4 feux
+        idxJaune     = 0;
+        idxRouge     = 1;
+        idxVoieLibre = 2;   // VERT / BLANC
+        idxCarre     = 3;   // ROUGE / VIOLET
         m_hasOeilleton = true;
         break;
 
-    case SIG_RAL: // 7 feux (Carré + Œilleton + RAL)
-        idxJaune = 0;
-        idxRouge = 1;
-        idxVert = 2;
-
-        idxCarre = 3;
+    case SIG_RAL: // 7 feux
+        idxJaune     = 0;
+        idxRouge     = 1;
+        idxVoieLibre = 2;
+        idxCarre     = 3;
         m_hasOeilleton = true;
 
         idxRal30_1 = 4;
-        idxRal30_2 = 6;
+        idxRal30_2 = 5;
         idxRal60_1 = 4;
-        idxRal60_2 = 6;
+        idxRal60_2 = 5;
         break;
 
-    case SIG_RAPPEL: // 9 feux (Carré + Œilleton + RAL + RAPPEL)
-        idxJaune = 0;
-        idxRouge = 1;
-        idxVert = 2;
-
-        idxCarre = 3;
+    case SIG_RAPPEL: // 9 feux
+        idxJaune     = 0;
+        idxRouge     = 1;
+        idxVoieLibre = 2;
+        idxCarre     = 3;
         m_hasOeilleton = true;
 
         // RAL 30/60
@@ -166,8 +159,8 @@ void EXCC_Signaux_WS2812::rebuildMapping() noexcept
         break;
 
     case SIG_MANOEUVRE: // 2 feux
-        idxBlanc = 0;
-        idxViolet = 1;
+        idxVoieLibre = 0;   // BLANC
+        idxCarre     = 1;   // VIOLET
         break;
 
     case SIG_ABSENT:
@@ -177,15 +170,15 @@ void EXCC_Signaux_WS2812::rebuildMapping() noexcept
 }
 
 /* ============================================================================
- *  Définir l’aspect
+ *  7) Définir l’aspect (EXCC n’a AUCUNE logique métier)
  * ==========================================================================*/
-bool EXCC_Signaux_WS2812::setAspect(ExsaAspect aspect) noexcept
+bool EXCC_Signaux_WS2812::setAspect(ExccAspect aspect) noexcept
 {
     if (m_typeSNCF == SIG_ABSENT)
     {
         eteindreTout();
+        m_aspectActuel = ASPECT_MASQUE;
         m_vitesse = ExccVitesse::AUCUNE;
-        m_aspectActuel = ASPECT_DEFAUT;
         return false;
     }
 
@@ -200,19 +193,28 @@ bool EXCC_Signaux_WS2812::setAspect(ExsaAspect aspect) noexcept
     {
     case ASPECT_CARRE:
         setLed(idxCarre, true, CRGB::Red);
-        setLed(idxRouge, true, CRGB::Red);
-        if (m_hasOeilleton && m_nbOeil > 0)
-            m_oeilStrip[0] = m_couleurOeilleton;
+        if (m_hasOeilleton) m_oeilStrip[0] = m_couleurOeilleton;
+        break;
+
+    case ASPECT_CARRE_VIOLET:
+        setLed(idxCarre, true, CRGB::Purple);
         break;
 
     case ASPECT_SEMAPHORE:
         setLed(idxRouge, true, CRGB::Red);
-        if (m_hasOeilleton && m_nbOeil > 0)
-            m_oeilStrip[0] = m_couleurOeilleton;
+        if (m_hasOeilleton) m_oeilStrip[0] = m_couleurOeilleton;
         break;
 
     case ASPECT_AVERTISSEMENT:
         setLed(idxJaune, true, CRGB::Yellow);
+        break;
+
+    case ASPECT_VOIE_LIBRE:
+        setLed(idxVoieLibre, true, CRGB::Green);
+        break;
+
+    case ASPECT_MANOEUVRE:
+        setLed(idxVoieLibre, true, CRGB::White);
         break;
 
     case ASPECT_RALENTISSEMENT_30:
@@ -231,23 +233,7 @@ bool EXCC_Signaux_WS2812::setAspect(ExsaAspect aspect) noexcept
         m_vitesse = ExccVitesse::RAPPEL_60;
         break;
 
-    case ASPECT_VOIE_LIBRE:
-        setLed(idxVert, true, CRGB::Green);
-        break;
-
-    case ASPECT_MANOEUVRE:
-        setLed(idxBlanc, true, CRGB::White);
-        setLed(idxViolet, true, CRGB::Purple);
-        break;
-
-    case ASPECT_MASQUE:
-        break;
-
-    case ASPECT_DEFAUT:
     default:
-        if (m_hasOeilleton && m_nbOeil > 0)
-            m_oeilStrip[0] = m_couleurOeilleton;
-        m_vitesse = ExccVitesse::RAPPEL_60;
         break;
     }
 
@@ -256,7 +242,7 @@ bool EXCC_Signaux_WS2812::setAspect(ExsaAspect aspect) noexcept
 }
 
 /* ============================================================================
- *  Feux fixes (RAL 30 / RAPPEL 30)
+ *  8) Feux fixes (RAL 30 / RAPPEL 30)
  * ==========================================================================*/
 void EXCC_Signaux_WS2812::appliquerAspectFixe() noexcept
 {
@@ -278,7 +264,7 @@ void EXCC_Signaux_WS2812::appliquerAspectFixe() noexcept
 }
 
 /* ============================================================================
- *  Clignotement (RAL 60 / RAPPEL 60 / BAL)
+ *  9) Clignotement (RAL 60 / RAPPEL 60 / BAL vert)
  * ==========================================================================*/
 void EXCC_Signaux_WS2812::appliquerClignotement(uint32_t nowMs) noexcept
 {
@@ -308,13 +294,13 @@ void EXCC_Signaux_WS2812::appliquerClignotement(uint32_t nowMs) noexcept
 
     default:
         if (m_typeSNCF == SIG_BAL)
-            setLed(idxVert, m_blinkState, CRGB::Green);
+            setLed(idxVoieLibre, m_blinkState, CRGB::Green);
         break;
     }
 }
 
 /* ============================================================================
- *  Update
+ *  🔟 Update
  * ==========================================================================*/
 void EXCC_Signaux_WS2812::update(uint32_t nowMs) noexcept
 {

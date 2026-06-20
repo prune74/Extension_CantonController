@@ -27,9 +27,10 @@
  * ============================================================
  */
 
-enum ExsaAspect : uint8_t
+enum ExccAspect : uint8_t
 {
     ASPECT_CARRE = 0,         // 🔴 Arrêt absolu
+    ASPECT_CARRE_VIOLET,      // 🟣 Carré violet - Arrêt absolu
     ASPECT_SEMAPHORE,         // 🔴 Arrêt
     ASPECT_AVERTISSEMENT,     // 🟡 Ralentir
     ASPECT_RALENTISSEMENT_30, // 🟡⚠️ 30 km/h
@@ -39,7 +40,6 @@ enum ExsaAspect : uint8_t
     ASPECT_VOIE_LIBRE,        // 🟢 Voie libre
     ASPECT_MANOEUVRE,         // 🔵 Manoeuvre
     ASPECT_MASQUE,            // ⚫ Masqué
-    ASPECT_DEFAUT             // ⚠️ Défaut
 };
 
 /* ============================================================
@@ -48,7 +48,7 @@ enum ExsaAspect : uint8_t
  */
 enum SignalProfil : uint8_t
 {
-    SIG_ABSENT = 0,    // Aucun signal présent physiquement
+    SIG_ABSENT = 0, // Aucun signal présent physiquement
 
     SIG_BAL = 1,       // 3 feux : Rouge / Jaune / Vert (BAL)
     SIG_CARRE = 2,     // 5 feux : Carré + Œilleton

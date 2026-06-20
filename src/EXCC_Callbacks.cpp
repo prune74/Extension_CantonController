@@ -58,11 +58,11 @@ static ExccSignalLayout mapTypeToLayout(uint8_t t)
 {
     switch (t)
     {
-        case SIG_MANOEUVRE:
-            return ExccSignalLayout::MANOEUVRE;
+    case SIG_MANOEUVRE:
+        return ExccSignalLayout::MANOEUVRE;
 
-        default:
-            return ExccSignalLayout::NORMAL;
+    default:
+        return ExccSignalLayout::NORMAL;
     }
 }
 
@@ -82,7 +82,7 @@ void EXCC_Callbacks::onTopologie(uint8_t *data, uint8_t len) noexcept
     uint8_t offset = 0;
 
     uint8_t idLocal = data[offset++];
-    uint8_t nPrec   = data[offset++];
+    uint8_t nPrec = data[offset++];
 
     if (offset + nPrec > len)
         return;
@@ -129,7 +129,7 @@ void EXCC_Callbacks::onConfigSignaux(uint8_t *data, uint8_t len) noexcept
 
     uint8_t typeH = data[0];
     uint8_t typeAH = data[1];
-    uint8_t posH  = data[2];
+    uint8_t posH = data[2];
     uint8_t posAH = data[3];
 
     // 1) Type SNCF
@@ -159,12 +159,12 @@ void EXCC_Callbacks::onConfigSignaux(uint8_t *data, uint8_t len) noexcept
  */
 void EXCC_Callbacks::onAspectHoraire(uint8_t aspect) noexcept
 {
-    signauxH.setAspect((ExsaAspect)aspect);
+    signauxH.setAspect((ExccAspect)aspect);
 }
 
 void EXCC_Callbacks::onAspectAntiHoraire(uint8_t aspect) noexcept
 {
-    signauxAH.setAspect((ExsaAspect)aspect);
+    signauxAH.setAspect((ExccAspect)aspect);
 }
 
 /* ============================================================================
