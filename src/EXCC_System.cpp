@@ -19,6 +19,7 @@
 #include "EXCC_Config.h"
 #include "Exploration_Protocol.h"
 
+#include "EXCC_Occupation.h"
 #include "EXCC_Booster_WS2812.h"
 
 #include <Arduino.h>
@@ -52,34 +53,37 @@ extern EXCC_Booster_WS2812 booster;
  */
 void EXCC_System::init() noexcept
 {
-    // 1) UART CC → EXCC (réception RS485)
+    // UART CC → EXCC (réception RS485)
     EXCC_UartRx::begin(Serial1, EXCC_UART_BAUDRATE);
 
-    // 2) PCA9685 (servos uniquement)
+    // PCA9685 (servos uniquement)
     EXCC_Servo::begin();
 
-    // 3) Canton WS2812 : état initial = LIBRE
+    // Canton WS2812 : état initial = LIBRE
     cantonWS.begin();
 
-    // 4) Micro‑switchs d’aiguilles
+    // Micro‑switchs d’aiguilles
     EXCC_Switches::begin();
 
-    // 5) Signaux SNCF WS2812 : aspect initial = MASQUÉ
+    // Signaux SNCF WS2812 : aspect initial = MASQUÉ
     signauxH.setAspect(ASPECT_MASQUE);
     signauxAH.setAspect(ASPECT_MASQUE);
 
-    // 6) Feux directionnels WS2812 : état initial = OFF
+    // Feux directionnels WS2812 : état initial = OFF
     directionH_WS.setDirection(0);
     directionAH_WS.setDirection(0);
 
     FastLED.show();
 
-    // 7) Calibration Booster — seuils par défaut
+    // Calibration Booster — seuils par défaut
     EXCC_Calibration::init();
 
-    // 8) Booster — initialisation du module
-    booster.begin();   // <-- AJOUT ESSENTIEL
+    // Occupation — initialisation du module
+    EXCC_Occupation::begin();
 
-    // 9) Booster — tâche FreeRTOS
+    // Booster — initialisation du module
+    booster.begin();
+
+    // Booster — tâche FreeRTOS
     EXCC_BoosterCore::startTask();
 }

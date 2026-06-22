@@ -66,20 +66,6 @@ void EXCC_UartTx::envoyerPonctuelAH(bool actif)
 }
 
 /* ============================================================
- * envoyerCompteurGlobal()
- * ============================================================ */
-void EXCC_UartTx::envoyerCompteurGlobal(uint8_t compteur)
-{
-    uint8_t frame[3] = {
-        PROTO_SYNC_BYTE,
-        PROTO_05_COMPTEUR_ESSIEUX,
-        compteur
-    };
-
-    EXCC_RS485::send(frame, sizeof(frame));
-}
-
-/* ============================================================
  * envoyerOccupation()
  * ============================================================ */
 void EXCC_UartTx::envoyerOccupation(bool occ)

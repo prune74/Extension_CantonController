@@ -26,7 +26,6 @@ public:
     void setOccupation(bool occupe) noexcept;
     void pulseMouvement() noexcept;
     void setErreur(bool erreur) noexcept;
-    void setVoisins(uint8_t voisins) noexcept;
 
 private:
     CRGB *m_led;

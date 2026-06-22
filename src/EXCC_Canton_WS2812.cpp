@@ -128,8 +128,3 @@ void EXCC_Canton_WS2812::setErreur(bool erreur) noexcept
     else
         *m_led = CRGB::Green;
 }
-
-void EXCC_Canton_WS2812::setVoisins(uint8_t voisins) noexcept
-{
-    (void)voisins;
-}

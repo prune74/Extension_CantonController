@@ -22,6 +22,12 @@
 #include "EXCC_Runtime.h"
 
 #include "EXCC_Signaux_WS2812.h"
+
+#include "EXCC_Ponctuel.h"
+#include "EXCC_Occupation.h"
+#include "EXCC_Compteur.h"
+#include "EXCC_Booster_WS2812.h"
+
 #include "EXCC_Canton_WS2812.h"
 #include "EXCC_Switches.h"
 
@@ -41,6 +47,7 @@ extern EXCC_Signaux_WS2812 signauxAH;
 
 extern EXCC_Canton_WS2812 cantonWS;
 
+extern EXCC_Booster_WS2812 booster;
 /* ============================================================================
  * update()
  * ----------------------------------------------------------------------------
@@ -50,26 +57,44 @@ extern EXCC_Canton_WS2812 cantonWS;
  */
 void EXCC_Runtime::update() noexcept
 {
-    uint32_t now = millis();
+   uint32_t now = millis();
 
-    /* --------------------------------------------------------
-       1) Mise à jour des signaux SNCF WS2812
-       -------------------------------------------------------- */
-    signauxH.update(now);
-    signauxAH.update(now);
+   /* --------------------------------------------------------
+      Mise à jour Occupation (fusion des sources)
+      -------------------------------------------------------- */
 
-    /* --------------------------------------------------------
-       2) Mise à jour canton WS2812
-       -------------------------------------------------------- */
-    cantonWS.update();
+   // Courant du booster
+   EXCC_Occupation::majCourant(booster.readCurrent_mA());
 
-    /* --------------------------------------------------------
-       3) Mise à jour aiguilles (anti‑blocage)
-       -------------------------------------------------------- */
-    EXCC_Switches::update();
+   // Compteur d’essieux
+   EXCC_Occupation::majCompteur(EXCC_Compteur::compteurGlobal());
 
-    /* --------------------------------------------------------
-       4) Application WS2812
-       -------------------------------------------------------- */
-    FastLED.show();
+   // Ponctuels H / AH
+   EXCC_Occupation::majPonctuels(
+       EXCC_Ponctuel::estActifH(),
+       EXCC_Ponctuel::estActifAH());
+
+   // Calcul final de l’occupation
+   EXCC_Occupation::calculerOccupationFinale();
+
+   /* --------------------------------------------------------
+      Mise à jour des signaux SNCF WS2812
+      -------------------------------------------------------- */
+   signauxH.update(now);
+   signauxAH.update(now);
+
+   /* --------------------------------------------------------
+      Mise à jour canton WS2812
+      -------------------------------------------------------- */
+   cantonWS.update();
+
+   /* --------------------------------------------------------
+      Mise à jour aiguilles (anti‑blocage)
+      -------------------------------------------------------- */
+   EXCC_Switches::update();
+
+   /* --------------------------------------------------------
+      Application WS2812
+      -------------------------------------------------------- */
+   FastLED.show();
 }

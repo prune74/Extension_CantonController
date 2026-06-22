@@ -45,9 +45,6 @@ public:
     static void envoyerPonctuelH(bool actif);
     static void envoyerPonctuelAH(bool actif);
 
-    /* --- Compteur essieux global --- */
-    static void envoyerCompteurGlobal(uint8_t compteur);
-
     /* --- Occupation canton (booster EXCC) --- */
     static void envoyerOccupation(bool occ);
 

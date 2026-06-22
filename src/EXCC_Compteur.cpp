@@ -12,8 +12,8 @@ uint8_t EXCC_Compteur::s_prevAH = 0;
 int EXCC_Compteur::s_compteurH  = 0;
 int EXCC_Compteur::s_compteurAH = 0;
 
-int EXCC_Compteur::deltaH  = 0;   // <-- AJOUT
-int EXCC_Compteur::deltaAH = 0;   // <-- AJOUT
+int EXCC_Compteur::deltaH  = 0;
+int EXCC_Compteur::deltaAH = 0;
 
 /*
  * ============================================================
@@ -75,7 +75,7 @@ void EXCC_Compteur::traiterQuadratureH()
         int delta = deltaFromQuadrature(s_prevH, etat);
         s_prevH = etat;
 
-        deltaH += delta;   // <-- AJOUT
+        deltaH += delta;
 
         s_compteurH += delta;
         if (s_compteurH < 0)
@@ -97,7 +97,7 @@ void EXCC_Compteur::traiterQuadratureAH()
         int delta = deltaFromQuadrature(s_prevAH, etat);
         s_prevAH = etat;
 
-        deltaAH += delta;  // <-- AJOUT
+        deltaAH += delta;
 
         s_compteurAH += delta;
         if (s_compteurAH < 0)

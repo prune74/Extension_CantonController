@@ -27,6 +27,7 @@
 #include "EXCC_Servo.h"
 #include "EXCC_Switches.h"
 #include "EXCC_Calibration.h"
+#include "EXCC_Occupation.h"
 #include "EXCC_BoosterCore.h"
 
 #include <Arduino.h>
@@ -187,7 +188,7 @@ void EXCC_Callbacks::onDirectionAntiHoraire(uint8_t code) noexcept
  */
 void EXCC_Callbacks::onOccupationVoisins(uint8_t value) noexcept
 {
-    cantonWS.setVoisins(value);
+    EXCC_Occupation::majVoisins(value);
 }
 
 /* ============================================================================
