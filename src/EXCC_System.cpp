@@ -11,13 +11,12 @@
 #include "EXCC_Canton_WS2812.h"
 #include "EXCC_Signaux_WS2812.h"
 #include "EXCC_LedDirection_WS2812.h"
-#include "EXCC_UartRx.h"
 #include "EXCC_BoosterCore.h"
 #include "EXCC_Calibration.h"
 #include "EXCC_Pins.h"
 #include "EXCC_Main.h"
 #include "EXCC_Config.h"
-#include "Exploration_Protocol.h"
+#include "Protocol.h"
 
 #include "EXCC_Occupation.h"
 #include "EXCC_Booster_WS2812.h"
@@ -53,9 +52,6 @@ extern EXCC_Booster_WS2812 booster;
  */
 void EXCC_System::init() noexcept
 {
-    // UART CC → EXCC (réception RS485)
-    EXCC_UartRx::begin(Serial1, EXCC_UART_BAUDRATE);
-
     // PCA9685 (servos uniquement)
     EXCC_Servo::begin();
 
@@ -66,8 +62,8 @@ void EXCC_System::init() noexcept
     EXCC_Switches::begin();
 
     // Signaux SNCF WS2812 : aspect initial = MASQUÉ
-    signauxH.setAspect(ASPECT_MASQUE);
-    signauxAH.setAspect(ASPECT_MASQUE);
+    signauxH.setAspect(ExccAspect::ASPECT_MASQUE);
+    signauxAH.setAspect(ExccAspect::ASPECT_MASQUE);
 
     // Feux directionnels WS2812 : état initial = OFF
     directionH_WS.setDirection(0);

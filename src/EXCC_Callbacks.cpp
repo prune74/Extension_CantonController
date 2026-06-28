@@ -29,7 +29,9 @@
 #include "EXCC_Calibration.h"
 #include "EXCC_Occupation.h"
 #include "EXCC_BoosterCore.h"
+#include "EXCC_Tension_Booster.h"
 
+#include "EXCC_CAN_CC.h"
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------
@@ -52,6 +54,12 @@ extern EXCC_LedDirection_WS2812 directionAH_WS;
 extern EXCC_Canton_WS2812 cantonWS;
 
 /* ============================================================================
+ *  ID du canton (reçu via CANTON_ID = 0xFD)
+ * ============================================================================
+ */
+uint8_t g_idCC = 0;
+
+/* ============================================================================
  *  Fonction interne : mapping type SNCF → layout WS2812
  * ============================================================================
  */
@@ -68,58 +76,39 @@ static ExccSignalLayout mapTypeToLayout(uint8_t t)
 }
 
 /* ============================================================================
- *  Topologie (E4)
+ *  Réception de l’ID du canton (FD)
  * ============================================================================
  */
-void EXCC_Callbacks::onTopologie(uint8_t *data, uint8_t len) noexcept
+void EXCC_Callbacks::onCantonID(const uint8_t *data, uint8_t len) noexcept
 {
 #if EXCC_DEBUG
-    Serial.println("[EXCC] --- Topologie reçue ---");
+    Serial.printf("[EXCC] CANTON_ID reçu : %u\n", data[0]);
 #endif
 
-    if (len < 3)
+    if (len < 1)
         return;
 
-    uint8_t offset = 0;
+    g_idCC = data[0];
+}
 
-    uint8_t idLocal = data[offset++];
-    uint8_t nPrec = data[offset++];
-
-    if (offset + nPrec > len)
-        return;
-
+/* ============================================================================
+ *  Réception PING (FC)
+ * ============================================================================
+ */
+void EXCC_Callbacks::onPing() noexcept
+{
 #if EXCC_DEBUG
-    Serial.printf("[EXCC] idLocal = %u\n", idLocal);
-    Serial.printf("[EXCC] precedents (%u) : ", nPrec);
-    for (uint8_t i = 0; i < nPrec; i++)
-        Serial.printf("%u ", data[offset + i]);
-    Serial.println();
+    Serial.println("[EXCC] PING reçu → envoi PONG");
 #endif
 
-    offset += nPrec;
-
-    if (offset >= len)
-        return;
-
-    uint8_t nSuiv = data[offset++];
-
-    if (offset + nSuiv > len)
-        return;
-
-#if EXCC_DEBUG
-    Serial.printf("[EXCC] suivants (%u) : ", nSuiv);
-    for (uint8_t i = 0; i < nSuiv; i++)
-        Serial.printf("%u ", data[offset + i]);
-    Serial.println();
-    Serial.println("[EXCC] --- Fin topologie ---");
-#endif
+    EXCC_CAN_CC::sendPong(g_idCC);
 }
 
 /* ============================================================================
  *  Configuration signaux (E5)
  * ============================================================================
  */
-void EXCC_Callbacks::onConfigSignaux(uint8_t *data, uint8_t len) noexcept
+void EXCC_Callbacks::onConfigSignaux(const uint8_t *data, uint8_t len) noexcept
 {
 #if EXCC_DEBUG
     Serial.println("[EXCC] --- Configuration signaux (E5) reçue ---");
@@ -251,4 +240,20 @@ void EXCC_Callbacks::onBoosterPower(uint8_t power) noexcept
 #endif
 
     EXCC_BoosterCore::setEnabled(power != 0);
+}
+
+/* ============================================================================
+ *  Profil de voie 12V ou 15V
+ * ============================================================================
+ */
+void EXCC_Callbacks::onProfileVoie(uint8_t profile) noexcept
+{
+#if EXCC_DEBUG
+    Serial.printf("[EXCC] PROFILE_VOIE reçu : %u\n", profile);
+#endif
+
+    // profile = 0 → voie N (12V)
+    // profile = 1 → voie HO (15V)
+
+    EXCC_Tension_Booster::setTrackProfile(profile == 1);
 }

@@ -1,7 +1,7 @@
 #include "EXCC_StatusLed.h"
 #include "EXCC_CanBooster.h"
 #include "EXCC_Booster_WS2812.h"
-#include "Exploration_Protocol.h"
+#include "Protocol.h"
 #include "EXCC_Switches.h"
 #include "CanDccBooster.h"
 #include "EXCC_Config.h"
@@ -17,19 +17,19 @@
 extern EXCC_Booster_WS2812 booster;
 
 // Pointeurs vers les LEDs du strip
-CRGB *EXCC_StatusLed::LED_CAN      = nullptr;
-CRGB *EXCC_StatusLed::LED_RAILCOM  = nullptr;
-CRGB *EXCC_StatusLed::LED_TELEM    = nullptr;
-CRGB *EXCC_StatusLed::LED_STATE    = nullptr;
+CRGB *EXCC_StatusLed::LED_CAN = nullptr;
+CRGB *EXCC_StatusLed::LED_RAILCOM = nullptr;
+CRGB *EXCC_StatusLed::LED_TELEM = nullptr;
+CRGB *EXCC_StatusLed::LED_STATE = nullptr;
 CRGB *EXCC_StatusLed::LED_SWITCHES = nullptr;
 
 void EXCC_StatusLed::begin(CRGB *strip)
 {
-    LED_CAN      = &strip[4];
-    LED_RAILCOM  = &strip[2];
-    LED_TELEM    = &strip[3];
-    LED_STATE    = &strip[1];
-    LED_SWITCHES = &strip[5];   // LED 5 = Switches (diagnostic aiguilles)
+    LED_CAN = &strip[4];
+    LED_RAILCOM = &strip[2];
+    LED_TELEM = &strip[3];
+    LED_STATE = &strip[1];
+    LED_SWITCHES = &strip[5];
 }
 
 void EXCC_StatusLed::update()
@@ -38,7 +38,7 @@ void EXCC_StatusLed::update()
     updateLedRailcom();
     updateLedTelemetry();
     updateLedState();
-    updateLedSwitches();   // <<< NOUVEAU
+    updateLedSwitches();
 }
 
 /* ============================================================
@@ -49,7 +49,7 @@ void EXCC_StatusLed::updateLedCan()
     if (!LED_CAN)
         return;
 
-    uint32_t now  = millis();
+    uint32_t now = millis();
     uint32_t last = EXCC_CanBooster::lastCanRxMs();
 
     if (now - last < 200)
@@ -70,10 +70,10 @@ void EXCC_StatusLed::updateLedRailcom()
 
     const BoosterTelemetry &t = booster.getTelemetry();
 
-    uint32_t now        = millis();
+    uint32_t now = millis();
     uint32_t lastCutout = EXCC_CanBooster::lastCutoutMs();
-    bool cutoutActive   = EXCC_CanBooster::isCutoutActive();
-    bool cutoutOk       = (now - lastCutout < 50);
+    bool cutoutActive = EXCC_CanBooster::isCutoutActive();
+    bool cutoutOk = (now - lastCutout < 50);
 
     if (t.railcomAddress != BoosterConstants::RAILCOM_NO_ADDRESS)
     {
@@ -200,7 +200,7 @@ void EXCC_StatusLed::updateLedSwitches()
     bool moving = EXCC_Switches::anyMovement();
 
     // OK
-    if (worst == PROTO_ETAT_OK && !moving)
+    if (worst == static_cast<uint8_t>(ExccCode::ETAT_OK) && !moving)
     {
         *LED_SWITCHES = CRGB::Green;
         flashCount = 0;
@@ -209,7 +209,7 @@ void EXCC_StatusLed::updateLedSwitches()
     }
 
     // Mouvement
-    if (worst == PROTO_ETAT_OK && moving)
+    if (worst == static_cast<uint8_t>(ExccCode::ETAT_OK) && moving)
     {
         *LED_SWITCHES = CRGB::Orange;
         flashCount = 0;
@@ -218,14 +218,14 @@ void EXCC_StatusLed::updateLedSwitches()
     }
 
     // Erreurs
-    if (worst == PROTO_ETAT_ERREUR)
-        flashesToDo = 1;   // INDET / INCOHÉRENT
-    else if (worst == PROTO_ETAT_BLOQUE)
-        flashesToDo = 3;   // BLOQUÉ
+    if (worst == static_cast<uint8_t>(ExccCode::ETAT_ERREUR))
+        flashesToDo = 1; // INDET / INCOHÉRENT
+    else if (worst == static_cast<uint8_t>(ExccCode::ETAT_BLOQUE))
+        flashesToDo = 3; // BLOQUÉ
 
-    const uint16_t FLASH_ON_MS  = 150;
+    const uint16_t FLASH_ON_MS = 150;
     const uint16_t FLASH_OFF_MS = 150;
-    const uint16_t PAUSE_MS     = 600;
+    const uint16_t PAUSE_MS = 600;
 
     if (flashCount < flashesToDo)
     {

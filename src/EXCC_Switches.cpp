@@ -30,7 +30,7 @@
  *   - La sécurité est entièrement locale : même si le CC plante,
  *     EXCC_Switches continue de surveiller les aiguilles.
  */
- 
+
 // ---------------------------------------------------------------------------
 // Protection plateforme : ce module nécessite l'ESP32
 // ---------------------------------------------------------------------------
@@ -41,10 +41,10 @@
 #include "EXCC_Switches.h"
 #include "EXCC_Pins.h"
 #include "EXCC_Config.h"
-#include "EXCC_UartTx.h"
+#include "EXCC_CAN_CC.h"
 #include "EXCC_Servo.h"
-#include "Exploration_Protocol.h"
-
+#include "Protocol.h"
+#include "Protocol.h"
 #include <Arduino.h>
 #include <Adafruit_MCP23X17.h>
 
@@ -63,6 +63,8 @@
  */
 
 Adafruit_MCP23X17 EXCC_Switches::mcp;
+
+extern uint8_t g_idCC;
 
 /*
  * Définition des tableaux constexpr déclarés dans le .h
@@ -90,14 +92,14 @@ constexpr uint8_t EXCC_Switches::swDevie[AIG_COUNT] = {
 };
 
 // Derniers états envoyés au CC
-uint8_t  EXCC_Switches::lastPos[AIG_COUNT]  = {255, 255, 255};
-uint8_t  EXCC_Switches::lastEtat[AIG_COUNT] = {255, 255, 255};
+uint8_t EXCC_Switches::lastPos[AIG_COUNT] = {255, 255, 255};
+uint8_t EXCC_Switches::lastEtat[AIG_COUNT] = {255, 255, 255};
 uint32_t EXCC_Switches::lastSendMs[AIG_COUNT] = {0, 0, 0};
 
 // Suivi du mouvement
 uint32_t EXCC_Switches::moveStartMs[AIG_COUNT] = {0, 0, 0};
-uint32_t EXCC_Switches::moveMaxMs[AIG_COUNT]   = {0, 0, 0};
-bool     EXCC_Switches::movementActive[AIG_COUNT] = {false, false, false};
+uint32_t EXCC_Switches::moveMaxMs[AIG_COUNT] = {0, 0, 0};
+bool EXCC_Switches::movementActive[AIG_COUNT] = {false, false, false};
 
 /*
  * ============================================================
@@ -177,13 +179,13 @@ uint8_t EXCC_Switches::lirePosition(uint8_t idx)
     bool devie = !mcp.digitalRead(swDevie[idx]);
 
     if (droit && !devie)
-        return PROTO_POS_DROIT;
+        return static_cast<uint8_t>(ExccCode::POS_DROIT);
     if (!droit && devie)
-        return PROTO_POS_DEVIE;
+        return static_cast<uint8_t>(ExccCode::POS_DEVIE);
     if (!droit && !devie)
-        return PROTO_POS_INDET;
+        return static_cast<uint8_t>(ExccCode::POS_INDET);
 
-    return PROTO_POS_INCOHERENT;
+    return static_cast<uint8_t>(ExccCode::POS_INCOHERENT);
 }
 
 /*
@@ -193,20 +195,20 @@ uint8_t EXCC_Switches::lirePosition(uint8_t idx)
  */
 uint8_t EXCC_Switches::lireEtat(uint8_t idx, uint8_t pos)
 {
-    if (pos == PROTO_POS_INCOHERENT)
-        return PROTO_ETAT_ERREUR;
+    if (pos == static_cast<uint8_t>(ExccCode::POS_INCOHERENT))
+        return static_cast<uint8_t>(ExccCode::ETAT_ERREUR);
 
-    if (pos == PROTO_POS_INDET)
-        return PROTO_ETAT_ERREUR;
+    if (pos == static_cast<uint8_t>(ExccCode::POS_INDET))
+        return static_cast<uint8_t>(ExccCode::ETAT_ERREUR);
 
     if (movementActive[idx])
     {
         uint32_t now = millis();
         if (now - moveStartMs[idx] > moveMaxMs[idx])
-            return PROTO_ETAT_BLOQUE;
+            return static_cast<uint8_t>(ExccCode::ETAT_BLOQUE);
     }
 
-    return PROTO_ETAT_OK;
+    return static_cast<uint8_t>(ExccCode::ETAT_OK);
 }
 
 /*
@@ -216,7 +218,7 @@ uint8_t EXCC_Switches::lireEtat(uint8_t idx, uint8_t pos)
  */
 void EXCC_Switches::envoyerTrame(uint8_t idx, uint8_t pos, uint8_t etat)
 {
-    EXCC_UartTx::envoyerPositionAiguille(idx, pos, etat);
+    EXCC_CAN_CC::envoyerPositionAiguille(g_idCC, idx, pos, etat);
     lastSendMs[idx] = millis();
 }
 
@@ -229,23 +231,24 @@ void EXCC_Switches::update()
 {
     for (uint8_t i = 0; i < AIG_COUNT; i++)
     {
-        uint8_t pos  = lirePosition(i);
+        uint8_t pos = lirePosition(i);
         uint8_t etat = lireEtat(i, pos);
 
         // Fin de mouvement si position stable et OK
-        if ((pos == PROTO_POS_DROIT || pos == PROTO_POS_DEVIE) &&
-            etat == PROTO_ETAT_OK)
+        if ((pos == static_cast<uint8_t>(ExccCode::POS_DROIT) || 
+             pos == static_cast<uint8_t>(ExccCode::POS_DEVIE)) &&
+            etat == static_cast<uint8_t>(ExccCode::ETAT_OK))
         {
             movementActive[i] = false;
         }
 
-        bool changed  = (pos != lastPos[i]) || (etat != lastEtat[i]);
+        bool changed = (pos != lastPos[i]) || (etat != lastEtat[i]);
         bool periodic = (millis() - lastSendMs[i] >= 200);
 
         if (changed || periodic)
         {
             envoyerTrame(i, pos, etat);
-            lastPos[i]  = pos;
+            lastPos[i] = pos;
             lastEtat[i] = etat;
         }
     }
@@ -259,17 +262,17 @@ void EXCC_Switches::update()
  */
 uint8_t EXCC_Switches::getWorstState()
 {
-    uint8_t worst = PROTO_ETAT_OK;
+    uint8_t worst = static_cast<uint8_t>(ExccCode::ETAT_OK);
 
     for (uint8_t i = 0; i < AIG_COUNT; i++)
     {
         uint8_t e = lastEtat[i];
 
-        if (e == PROTO_ETAT_BLOQUE)
-            return PROTO_ETAT_BLOQUE; // priorité max
+        if (e == static_cast<uint8_t>(ExccCode::ETAT_BLOQUE))
+            return static_cast<uint8_t>(ExccCode::ETAT_BLOQUE); // priorité max
 
-        if (e == PROTO_ETAT_ERREUR)
-            worst = PROTO_ETAT_ERREUR;
+        if (e == static_cast<uint8_t>(ExccCode::ETAT_ERREUR))
+            worst = static_cast<uint8_t>(ExccCode::ETAT_ERREUR);
     }
 
     return worst;

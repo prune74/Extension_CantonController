@@ -12,7 +12,6 @@
  *    Point d’entrée de l’initialisation complète du système EXCC.
  *
  *    Cette version initialise :
- *      • UART RS485 (réception CC → EXCC)
  *      • Servos (PCA9685)
  *      • Canton WS2812 (occupation + mouvement + erreur)
  *      • Micro‑switchs d’aiguilles

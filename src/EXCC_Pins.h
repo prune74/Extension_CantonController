@@ -14,14 +14,6 @@
  */
 
 /* ============================================================
-   UART EXCC ↔ CC (RS485) — Serial1
-   ============================================================ */
-static const int EXCC_UART_BAUDRATE = 115200;
-static const gpio_num_t PIN_RS485_RX    = GPIO_NUM_16;
-static const gpio_num_t PIN_RS485_TX    = GPIO_NUM_17;
-static const gpio_num_t PIN_RS485_DE_RE = GPIO_NUM_12;   // OK en sortie
-
-/* ============================================================
    Quadrature Essieux (ADC1 uniquement)
    ============================================================ */
 static const gpio_num_t PIN_QUAD_H_A  = GPIO_NUM_32;  // ADC1_CH4
@@ -87,7 +79,7 @@ static const gpio_num_t PIN_DRV_NSLEEP = GPIO_NUM_13;
 static const gpio_num_t PIN_DRV_PHASE  = GPIO_NUM_14;
 static const gpio_num_t PIN_DRV_FAULT  = GPIO_NUM_2;
 
-static const gpio_num_t PIN_DCC_PWM    = GPIO_NUM_23; // RMT/PWM OK
+static const gpio_num_t PIN_DCC_PWM    = GPIO_NUM_16; // RMT/PWM OK
 
 // ============================================================================
 //  NOTE IMPORTANTE : ADC du Booster EXCC
@@ -104,8 +96,29 @@ static const gpio_num_t PIN_DCC_PWM    = GPIO_NUM_23; // RMT/PWM OK
 //  → Toute la gestion analogique est centralisée dans EXCC_BoosterHardware.
 // ============================================================================
 
+/* ============================================================================
+ *  CAN — Booster
+ * ============================================================================
+ */
+#define PIN_CAN_TX GPIO_NUM_4
+#define PIN_CAN_RX GPIO_NUM_5
+#define CAN_BITRATE 500000UL
+
+/* ============================================================================
+ *  CAN — Bus EXCC
+ * ============================================================================
+ */
+#define PIN_EXCC_CS GPIO_NUM_13
+#define PIN_EXCC_INT GPIO_NUM_14
+#define PIN_EXCC_SCK GPIO_NUM_18  // Obligatoire
+#define PIN_EXCC_MOSI GPIO_NUM_23 // Obligatoire
+#define PIN_EXCC_MISO GPIO_NUM_19 // Obligatoire
+
+#define QUARTZ_MCP2515 8000000 // MCP2515 quartz 8 MHz
+#define CAN_BITRATE_MCP2515 250000UL
+
 /* ============================================================
-   CAN natif ESP32
+   I2C — Digipot Tension Booster
    ============================================================ */
-static const gpio_num_t PIN_CAN_RX = GPIO_NUM_4;
-static const gpio_num_t PIN_CAN_TX = GPIO_NUM_5;
+static const gpio_num_t PIN_I2C_SDA = GPIO_NUM_21;
+static const gpio_num_t PIN_I2C_SCL = GPIO_NUM_22;

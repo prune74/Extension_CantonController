@@ -9,36 +9,60 @@
 #include "CanConfig.h"
 #include "EXCC_Pins.h"
 
-struct EXCC_CanConfig : public CanConfigProvider
+class EXCC_CanConfig : public CanConfigProvider
 {
-
+public:
     uint8_t busCount() const override
     {
-        return 1;
+        return 2; // 🟢 Deux bus CAN comme sur le CC
     }
 
     const CanBusConfig &bus(uint8_t index) const override
     {
         static CanBusConfig cfg;
 
-        cfg.enabled = true;
-        cfg.speed = 500000; // 500 kbps
+        switch (index)
+        {
+        case 0: // 🟦 Bus 0 : TWAI interne (lien ERM ↔ Booster)
+            cfg.enabled   = true;
+            cfg.speed     = CAN_BITRATE;
 
-        // TWAI interne ESP32
-        cfg.tx_pin = PIN_CAN_TX;
-        cfg.rx_pin = PIN_CAN_RX;
+            cfg.tx_pin    = PIN_CAN_TX;
+            cfg.rx_pin    = PIN_CAN_RX;
 
-        // MCP2515 désactivé
-        cfg.cs_pin = GPIO_NUM_NC;
-        cfg.int_pin = GPIO_NUM_NC;
-        cfg.sck_pin = GPIO_NUM_NC;
-        cfg.mosi_pin = GPIO_NUM_NC;
-        cfg.miso_pin = GPIO_NUM_NC;
+            cfg.cs_pin    = GPIO_NUM_NC;
+            cfg.int_pin   = GPIO_NUM_NC;
+            cfg.sck_pin   = GPIO_NUM_NC;
+            cfg.mosi_pin  = GPIO_NUM_NC;
+            cfg.miso_pin  = GPIO_NUM_NC;
 
-        cfg.quartz = 0;
-        cfg.tolerance = 0;
-        cfg.loopback = false;
+            cfg.quartz    = 0;
+            cfg.tolerance = 0;
+            cfg.loopback  = false;
+            return cfg;
 
-        return cfg;
+        case 1: // 🟧 Bus 1 : MCP2515 externe (lien CC ↔ EXCC)
+            cfg.enabled   = true;
+            cfg.speed     = CAN_BITRATE_MCP2515;
+
+            cfg.tx_pin    = GPIO_NUM_NC;
+            cfg.rx_pin    = GPIO_NUM_NC;
+
+            cfg.cs_pin    = PIN_EXCC_CS;
+            cfg.int_pin   = PIN_EXCC_INT;
+
+            cfg.sck_pin   = PIN_EXCC_SCK;
+            cfg.mosi_pin  = PIN_EXCC_MOSI;
+            cfg.miso_pin  = PIN_EXCC_MISO;
+
+            cfg.quartz    = QUARTZ_MCP2515;
+            cfg.tolerance = 0;
+            cfg.loopback  = false;
+            return cfg;
+        }
+
+        // Bus invalide
+        static CanBusConfig invalid;
+        return invalid;
     }
 };

@@ -6,12 +6,12 @@
 
 #include <Arduino.h>
 #include <FastLED.h>
-#include "Exploration_Protocol.h"
+#include "Protocol.h"
 
 // Layout physique éventuel (orientation, inversion…)
 enum class ExccSignalLayout : uint8_t
 {
-    NORMAL    = 0,
+    NORMAL = 0,
     MANOEUVRE = 1
 };
 
@@ -42,43 +42,43 @@ public:
     void setPosition(uint8_t pos) noexcept;
 
     // Accesseurs
-    ExccAspect getAspect() const noexcept   { return m_aspectActuel; }
-    uint8_t    getType()   const noexcept   { return m_typeSNCF; }
-    uint8_t    getPosition() const noexcept { return m_position; }
+    ExccAspect getAspect() const noexcept { return m_aspectActuel; }
+    uint8_t getType() const noexcept { return m_typeSNCF; }
+    uint8_t getPosition() const noexcept { return m_position; }
 
 private:
     // ---------------------------------------------------------------------
     // Données LED
     // ---------------------------------------------------------------------
-    CRGB   *m_feuxStrip;
+    CRGB *m_feuxStrip;
     uint8_t m_nbFeux;
 
-    CRGB   *m_oeilStrip;
+    CRGB *m_oeilStrip;
     uint8_t m_nbOeil;
 
     // ---------------------------------------------------------------------
     // Configuration matérielle
     // ---------------------------------------------------------------------
-    uint8_t          m_typeSNCF;   // SignalProfil (SIG_BAL, SIG_CARRE…)
-    uint8_t          m_position;   // Position physique éventuelle
-    ExccSignalLayout m_layout;     // Layout physique
+    uint8_t m_typeSNCF;        // SignalProfil (SIG_BAL, SIG_CARRE…)
+    uint8_t m_position;        // Position physique éventuelle
+    ExccSignalLayout m_layout; // Layout physique
 
     // ---------------------------------------------------------------------
     // État courant
     // ---------------------------------------------------------------------
-    ExccAspect  m_aspectActuel;
+    ExccAspect m_aspectActuel;
     ExccVitesse m_vitesse;
 
     uint32_t m_lastBlinkMs;
-    bool     m_blinkState;
+    bool m_blinkState;
 
     // ---------------------------------------------------------------------
     // Mapping interne des indices (dépend du type de mât)
     // ---------------------------------------------------------------------
     int8_t idxRouge;
     int8_t idxJaune;
-    int8_t idxVoieLibre;   // VERT / BLANC
-    int8_t idxCarre;       // ROUGE / VIOLET
+    int8_t idxVoieLibre; // VERT / BLANC
+    int8_t idxCarre;     // ROUGE / VIOLET
 
     int8_t idxRal30_1;
     int8_t idxRal30_2;

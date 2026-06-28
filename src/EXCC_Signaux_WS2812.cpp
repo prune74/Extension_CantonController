@@ -20,13 +20,13 @@ EXCC_Signaux_WS2812::EXCC_Signaux_WS2812(CRGB *feux, uint8_t nbFeux,
       m_typeSNCF(SIG_ABSENT),
       m_position(0),
       m_layout(layoutInit),
-      m_aspectActuel(ASPECT_MASQUE),
+      m_aspectActuel(ExccAspect::ASPECT_MASQUE),
       m_vitesse(ExccVitesse::AUCUNE),
       m_lastBlinkMs(0),
       m_blinkState(true),
       idxRouge(-1), idxJaune(-1),
-      idxVoieLibre(-1),   // VERT / BLANC
-      idxCarre(-1),       // ROUGE / VIOLET
+      idxVoieLibre(-1),
+      idxCarre(-1),
       idxRal30_1(-1), idxRal30_2(-1),
       idxRal60_1(-1), idxRal60_2(-1),
       idxRappel30_1(-1), idxRappel30_2(-1),
@@ -76,7 +76,7 @@ void EXCC_Signaux_WS2812::setType(uint8_t typeSNCF) noexcept
     if (m_typeSNCF == SIG_ABSENT)
     {
         eteindreTout();
-        m_aspectActuel = ASPECT_MASQUE;
+        m_aspectActuel = ExccAspect::ASPECT_MASQUE;
         m_vitesse = ExccVitesse::AUCUNE;
         return;
     }
@@ -111,21 +111,21 @@ void EXCC_Signaux_WS2812::rebuildMapping() noexcept
 
     switch (m_typeSNCF)
     {
-    case SIG_BAL: // 3 feux
+    case SIG_BAL:
         idxJaune     = 0;
         idxRouge     = 1;
-        idxVoieLibre = 2;   // VERT
+        idxVoieLibre = 2;
         break;
 
-    case SIG_CARRE: // 4 feux
+    case SIG_CARRE:
         idxJaune     = 0;
         idxRouge     = 1;
-        idxVoieLibre = 2;   // VERT / BLANC
-        idxCarre     = 3;   // ROUGE / VIOLET
+        idxVoieLibre = 2;
+        idxCarre     = 3;
         m_hasOeilleton = true;
         break;
 
-    case SIG_RAL: // 7 feux
+    case SIG_RAL:
         idxJaune     = 0;
         idxRouge     = 1;
         idxVoieLibre = 2;
@@ -138,29 +138,27 @@ void EXCC_Signaux_WS2812::rebuildMapping() noexcept
         idxRal60_2 = 5;
         break;
 
-    case SIG_RAPPEL: // 9 feux
+    case SIG_RAPPEL:
         idxJaune     = 0;
         idxRouge     = 1;
         idxVoieLibre = 2;
         idxCarre     = 3;
         m_hasOeilleton = true;
 
-        // RAL 30/60
         idxRal30_1 = 4;
         idxRal30_2 = 6;
         idxRal60_1 = 4;
         idxRal60_2 = 6;
 
-        // RAPPEL 30/60
         idxRappel30_1 = 5;
         idxRappel30_2 = 7;
         idxRappel60_1 = 5;
         idxRappel60_2 = 7;
         break;
 
-    case SIG_MANOEUVRE: // 2 feux
-        idxVoieLibre = 0;   // BLANC
-        idxCarre     = 1;   // VIOLET
+    case SIG_MANOEUVRE:
+        idxVoieLibre = 0;
+        idxCarre     = 1;
         break;
 
     case SIG_ABSENT:
@@ -170,14 +168,14 @@ void EXCC_Signaux_WS2812::rebuildMapping() noexcept
 }
 
 /* ============================================================================
- *  7) Définir l’aspect (EXCC n’a AUCUNE logique métier)
+ *  7) Définir l’aspect (enum class ExccAspect)
  * ==========================================================================*/
 bool EXCC_Signaux_WS2812::setAspect(ExccAspect aspect) noexcept
 {
     if (m_typeSNCF == SIG_ABSENT)
     {
         eteindreTout();
-        m_aspectActuel = ASPECT_MASQUE;
+        m_aspectActuel = ExccAspect::ASPECT_MASQUE;
         m_vitesse = ExccVitesse::AUCUNE;
         return false;
     }
@@ -191,48 +189,49 @@ bool EXCC_Signaux_WS2812::setAspect(ExccAspect aspect) noexcept
 
     switch (aspect)
     {
-    case ASPECT_CARRE:
+    case ExccAspect::ASPECT_CARRE:
         setLed(idxCarre, true, CRGB::Red);
         if (m_hasOeilleton) m_oeilStrip[0] = m_couleurOeilleton;
         break;
 
-    case ASPECT_CARRE_VIOLET:
+    case ExccAspect::ASPECT_CARRE_VIOLET:
         setLed(idxCarre, true, CRGB::Purple);
         break;
 
-    case ASPECT_SEMAPHORE:
+    case ExccAspect::ASPECT_SEMAPHORE:
         setLed(idxRouge, true, CRGB::Red);
         if (m_hasOeilleton) m_oeilStrip[0] = m_couleurOeilleton;
         break;
 
-    case ASPECT_AVERTISSEMENT:
+    case ExccAspect::ASPECT_AVERTISSEMENT:
         setLed(idxJaune, true, CRGB::Yellow);
         break;
 
-    case ASPECT_VOIE_LIBRE:
+    case ExccAspect::ASPECT_VOIE_LIBRE:
         setLed(idxVoieLibre, true, CRGB::Green);
         break;
 
-    case ASPECT_MANOEUVRE:
+    case ExccAspect::ASPECT_MANOEUVRE:
         setLed(idxVoieLibre, true, CRGB::White);
         break;
 
-    case ASPECT_RALENTISSEMENT_30:
+    case ExccAspect::ASPECT_RALENTISSEMENT_30:
         m_vitesse = ExccVitesse::RALENT_30;
         break;
 
-    case ASPECT_RALENTISSEMENT_60:
+    case ExccAspect::ASPECT_RALENTISSEMENT_60:
         m_vitesse = ExccVitesse::RALENT_60;
         break;
 
-    case ASPECT_RAPPEL_30:
+    case ExccAspect::ASPECT_RAPPEL_30:
         m_vitesse = ExccVitesse::RAPPEL_30;
         break;
 
-    case ASPECT_RAPPEL_60:
+    case ExccAspect::ASPECT_RAPPEL_60:
         m_vitesse = ExccVitesse::RAPPEL_60;
         break;
 
+    case ExccAspect::ASPECT_MASQUE:
     default:
         break;
     }

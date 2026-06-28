@@ -170,7 +170,7 @@ src/
 ├── EXCC_Canton.*
 ├── EXCC_Quadrature.*
 ├── EXCC_Switches.*
-└── Exploration_Protocol.h
+└── Protocol.h
 ```
 ---
 

@@ -20,7 +20,7 @@
  *     Aucun bitfield ici.
  *
  *  Les aspects SNCF sont définis dans :
- *      → Exploration_Protocol.h (enum ExccAspect)
+ *      → Protocol.h (enum ExccAspect)
  * ============================================================
  */
 
@@ -180,6 +180,6 @@ constexpr uint8_t AIG_COUNT = 6;
  *  Aucun aspect ici !
  * ------------------------------------------------------------
  *  Les aspects SNCF sont définis dans :
- *      → Exploration_Protocol.h (enum ExccAspect)
+ *      → Protocol.h (enum ExccAspect)
  * ============================================================
  */

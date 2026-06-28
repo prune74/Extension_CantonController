@@ -1,18 +1,20 @@
 #include "EXCC_Ponctuel.h"
 #include "EXCC_Compteur.h"
-#include "EXCC_UartTx.h"
+#include "EXCC_CAN_CC.h"
 
 #include <Arduino.h>
 
-bool EXCC_Ponctuel::s_actifH  = false;
+bool EXCC_Ponctuel::s_actifH = false;
 bool EXCC_Ponctuel::s_actifAH = false;
 
-unsigned long EXCC_Ponctuel::s_lastH  = 0;
+unsigned long EXCC_Ponctuel::s_lastH = 0;
 unsigned long EXCC_Ponctuel::s_lastAH = 0;
+
+extern uint8_t g_idCC;
 
 void EXCC_Ponctuel::begin()
 {
-    s_actifH  = false;
+    s_actifH = false;
     s_actifAH = false;
 }
 
@@ -65,10 +67,10 @@ void EXCC_Ponctuel::activerAH()
 
 void EXCC_Ponctuel::envoyerH(bool actif)
 {
-    EXCC_UartTx::envoyerPonctuelH(actif);
+    EXCC_CAN_CC::envoyerPonctuelH(g_idCC, actif);
 }
 
 void EXCC_Ponctuel::envoyerAH(bool actif)
 {
-    EXCC_UartTx::envoyerPonctuelAH(actif);
+    EXCC_CAN_CC::envoyerPonctuelAH(g_idCC, actif);
 }
