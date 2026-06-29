@@ -71,6 +71,7 @@ void EXCC_BoosterHardware::setupDrv8874()
  */
 void EXCC_BoosterHardware::enableOutput()
 {
+    ledcWrite(LEDC_CHANNEL, 255);
     digitalWrite(PIN_DRV_NSLEEP, HIGH);
 }
 
@@ -116,7 +117,7 @@ void EXCC_BoosterHardware::applyDcc(const uint8_t *data, uint8_t len)
         return;
 
     digitalWrite(PIN_DRV_PHASE, data[0] ? HIGH : LOW);
-    ledcWrite(LEDC_CHANNEL, 255);
+    enableOutput();
 }
 
 /*

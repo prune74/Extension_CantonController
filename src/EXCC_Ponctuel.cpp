@@ -25,52 +25,52 @@ void EXCC_Ponctuel::loop()
     // --- Côté H ---
     if (EXCC_Compteur::deltaH != 0)
     {
-        activerH();
+        activerCapteurH();
         s_lastH = now;
     }
     else if (s_actifH && (now - s_lastH > TIMEOUT_MS))
     {
         s_actifH = false;
-        envoyerH(false);
+        envoyerEtatCapteurH(false);
     }
 
     // --- Côté AH ---
     if (EXCC_Compteur::deltaAH != 0)
     {
-        activerAH();
+        activerCapteurAH();
         s_lastAH = now;
     }
     else if (s_actifAH && (now - s_lastAH > TIMEOUT_MS))
     {
         s_actifAH = false;
-        envoyerAH(false);
+        envoyerEtatCapteurAH(false);
     }
 }
 
-void EXCC_Ponctuel::activerH()
+void EXCC_Ponctuel::activerCapteurH()
 {
     if (!s_actifH)
     {
         s_actifH = true;
-        envoyerH(true);
+        envoyerEtatCapteurH(true);
     }
 }
 
-void EXCC_Ponctuel::activerAH()
+void EXCC_Ponctuel::activerCapteurAH()
 {
     if (!s_actifAH)
     {
         s_actifAH = true;
-        envoyerAH(true);
+        envoyerEtatCapteurAH(true);
     }
 }
 
-void EXCC_Ponctuel::envoyerH(bool actif)
+void EXCC_Ponctuel::envoyerEtatCapteurH(bool actif)
 {
     EXCC_CAN_CC::envoyerPonctuelH(g_idCC, actif);
 }
 
-void EXCC_Ponctuel::envoyerAH(bool actif)
+void EXCC_Ponctuel::envoyerEtatCapteurAH(bool actif)
 {
     EXCC_CAN_CC::envoyerPonctuelAH(g_idCC, actif);
 }

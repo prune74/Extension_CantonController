@@ -12,7 +12,7 @@ public:
     static void loop();
 
     // Accesseurs pour EXCC_Occupation
-    static bool estActifH()  { return s_actifH; }
+    static bool estActifH() { return s_actifH; }
     static bool estActifAH() { return s_actifAH; }
 
 private:
@@ -26,10 +26,10 @@ private:
     static constexpr unsigned long TIMEOUT_MS = 200;
 
     // Activation ponctuelle
-    static void activerH();
-    static void activerAH();
+    static void activerCapteurH();
+    static void activerCapteurAH();
 
     // Envoi UART vers le CC
-    static void envoyerH(bool actif);
-    static void envoyerAH(bool actif);
+    static void envoyerEtatCapteurH(bool actif);
+    static void envoyerEtatCapteurAH(bool actif);
 };
