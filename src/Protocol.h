@@ -35,15 +35,15 @@ enum class ExccAspect : uint8_t
  *  🟦 ENUM TYPE DE MATS
  * ============================================================
  */
-enum SignalProfil : uint8_t
+enum SignalType : uint8_t
 {
     SIG_ABSENT = 0, // Aucun signal présent physiquement
 
-    SIG_BAL = 1,       // 3 feux : Rouge / Jaune / Vert (BAL)
-    SIG_CARRE = 2,     // 5 feux : Carré + Œilleton
-    SIG_RAL = 3,       // 7 feux : Ralentissement 30/60
-    SIG_RAPPEL = 4,    // 9 feux : Rappel 30/60
-    SIG_MANOEUVRE = 5, // 2 feux : Blanc + Violet
+    TYPE_A = 1, // BAL (cible A), 3 feux
+    TYPE_C = 2, // Carré + BAL (cible C), 5 feux
+    TYPE_E = 3, // Ralentissement (cible E), 7 feux
+    TYPE_G = 4, // Rappel (cible G), 9 feux
+    TYPE_M = 5  // Manœuvre (cible M), 2 feux
 };
 
 /* ============================================================================
@@ -59,6 +59,7 @@ enum class Cmd_EXCC_to_CC : uint16_t
     PONCTUEL_AH = 0xD9,
     RAILCOM_ADRESSE = 0xDA,
     CALIB_BOOSTER_INFO = 0xDB,
+    ESSIEUX = 0xDC,
 };
 
 /* ============================================================================
@@ -93,6 +94,7 @@ enum class Cmd_CC_to_CC : uint16_t
     RAILCOM_VOISIN = 0xE5,
     ASPECT_VOISIN = 0xE7,
     AIGUILLAGE = 0xE9,
+    MESURE_PREPARE = 0xEB, // CC0 → CCx : préparer la mesure de vitesse
 };
 
 /* ============================================================================
@@ -127,6 +129,7 @@ enum class Cmd_CC_to_ERM : uint16_t
 {
     TEST_BUS = 0xB2,
     REQUEST_ID = 0xB4,
+    MESURE_VITESSE  = 0xB6,
 };
 
 /* ============================================================================
@@ -160,4 +163,16 @@ enum class Cmd_Global11 : uint16_t
     HEARTBEAT = 0x200,
     EMERGENCY_STOP = 0x201,
     CLEAR_STOP = 0x202,
+};
+
+/* ============================================================================
+ *  COMMANDES CAN LaBox (traction DCC NMRA)
+ * ==========================================================================*/
+enum class Cmd_CAN_LaBox : uint16_t
+{
+    SYSTEM_CONTROL     = 0x00,  // Power ON/OFF, emergency stop global
+    LOCO_SPEED         = 0x04,  // Vitesse loco
+    LOCO_DIRECTION     = 0x05,  // Sens de marche
+    LOCO_FUNCTION      = 0x06,  // Fonctions F0..F28
+    LOCO_WRITECV_MAIN  = 0x08,  // Écriture CV sur voie principale
 };

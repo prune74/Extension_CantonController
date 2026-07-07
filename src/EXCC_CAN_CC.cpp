@@ -67,3 +67,9 @@ void EXCC_CAN_CC::envoyerPositionAiguille(uint16_t idCanton, uint8_t servoIndex,
     uint8_t d[3] = {servoIndex, position, etat};
     sendEXCC(1, (uint16_t)Cmd_EXCC_to_CC::POSITION_AIGUILLE, 0, idCanton, d, 3);
 }
+
+void EXCC_CAN_CC::envoyerEssieux(uint16_t idCanton, uint8_t essieux)
+{
+    uint8_t d[1] = { essieux };
+    sendEXCC(1, (uint16_t)Cmd_EXCC_to_CC::ESSIEUX, 0, idCanton, d, 1);
+}

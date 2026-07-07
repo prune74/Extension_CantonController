@@ -111,25 +111,25 @@ void EXCC_Signaux_WS2812::rebuildMapping() noexcept
 
     switch (m_typeSNCF)
     {
-    case SIG_BAL:
-        idxJaune     = 0;
-        idxRouge     = 1;
+    case TYPE_A:
+        idxJaune = 0;
+        idxRouge = 1;
         idxVoieLibre = 2;
         break;
 
-    case SIG_CARRE:
-        idxJaune     = 0;
-        idxRouge     = 1;
+    case TYPE_C:
+        idxJaune = 0;
+        idxRouge = 1;
         idxVoieLibre = 2;
-        idxCarre     = 3;
+        idxCarre = 3;
         m_hasOeilleton = true;
         break;
 
-    case SIG_RAL:
-        idxJaune     = 0;
-        idxRouge     = 1;
+    case TYPE_E:
+        idxJaune = 0;
+        idxRouge = 1;
         idxVoieLibre = 2;
-        idxCarre     = 3;
+        idxCarre = 3;
         m_hasOeilleton = true;
 
         idxRal30_1 = 4;
@@ -138,11 +138,11 @@ void EXCC_Signaux_WS2812::rebuildMapping() noexcept
         idxRal60_2 = 5;
         break;
 
-    case SIG_RAPPEL:
-        idxJaune     = 0;
-        idxRouge     = 1;
+    case TYPE_G:
+        idxJaune = 0;
+        idxRouge = 1;
         idxVoieLibre = 2;
-        idxCarre     = 3;
+        idxCarre = 3;
         m_hasOeilleton = true;
 
         idxRal30_1 = 4;
@@ -156,9 +156,9 @@ void EXCC_Signaux_WS2812::rebuildMapping() noexcept
         idxRappel60_2 = 7;
         break;
 
-    case SIG_MANOEUVRE:
+    case TYPE_M:
         idxVoieLibre = 0;
-        idxCarre     = 1;
+        idxCarre = 1;
         break;
 
     case SIG_ABSENT:
@@ -191,7 +191,8 @@ bool EXCC_Signaux_WS2812::setAspect(ExccAspect aspect) noexcept
     {
     case ExccAspect::ASPECT_CARRE:
         setLed(idxCarre, true, CRGB::Red);
-        if (m_hasOeilleton) m_oeilStrip[0] = m_couleurOeilleton;
+        if (m_hasOeilleton)
+            m_oeilStrip[0] = m_couleurOeilleton;
         break;
 
     case ExccAspect::ASPECT_CARRE_VIOLET:
@@ -200,7 +201,8 @@ bool EXCC_Signaux_WS2812::setAspect(ExccAspect aspect) noexcept
 
     case ExccAspect::ASPECT_SEMAPHORE:
         setLed(idxRouge, true, CRGB::Red);
-        if (m_hasOeilleton) m_oeilStrip[0] = m_couleurOeilleton;
+        if (m_hasOeilleton)
+            m_oeilStrip[0] = m_couleurOeilleton;
         break;
 
     case ExccAspect::ASPECT_AVERTISSEMENT:
@@ -270,7 +272,7 @@ void EXCC_Signaux_WS2812::appliquerClignotement(uint32_t nowMs) noexcept
     if (m_typeSNCF == SIG_ABSENT)
         return;
 
-    if (m_vitesse == ExccVitesse::AUCUNE && m_typeSNCF != SIG_BAL)
+    if (m_vitesse == ExccVitesse::AUCUNE && m_typeSNCF != TYPE_A)
         return;
 
     if (nowMs - m_lastBlinkMs >= BLINK_PERIOD_MS)
@@ -292,7 +294,7 @@ void EXCC_Signaux_WS2812::appliquerClignotement(uint32_t nowMs) noexcept
         break;
 
     default:
-        if (m_typeSNCF == SIG_BAL)
+        if (m_typeSNCF == TYPE_A)
             setLed(idxVoieLibre, m_blinkState, CRGB::Green);
         break;
     }

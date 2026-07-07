@@ -17,4 +17,5 @@ public:
     static void envoyerRailcom(uint16_t idCanton, uint8_t type, uint16_t adresse);
     static void envoyerCalibBooster(uint16_t idCanton, uint16_t seuilLibre_mA, uint16_t seuilOccupe_mA);
     static void envoyerPositionAiguille(uint16_t idCanton, uint8_t servoIndex, uint8_t position, uint8_t etat);
+    static void envoyerEssieux(uint16_t idCanton, uint8_t essieux);
 };

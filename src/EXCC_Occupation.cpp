@@ -2,6 +2,7 @@
 
 #include "EXCC_Compteur.h"
 #include "EXCC_Ponctuel.h"
+#include "EXCC_RailCom.h"
 #include "EXCC_Booster_WS2812.h"
 #include "EXCC_CAN_CC.h"
 #include "EXCC_Canton_WS2812.h"

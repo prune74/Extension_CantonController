@@ -59,7 +59,7 @@ private:
     // ---------------------------------------------------------------------
     // Configuration matérielle
     // ---------------------------------------------------------------------
-    uint8_t m_typeSNCF;        // SignalProfil (SIG_BAL, SIG_CARRE…)
+    uint8_t m_typeSNCF;        // SignalProfil (TYPE_A, TYPE_C…)
     uint8_t m_position;        // Position physique éventuelle
     ExccSignalLayout m_layout; // Layout physique
 

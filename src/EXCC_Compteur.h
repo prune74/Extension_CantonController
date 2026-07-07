@@ -32,10 +32,15 @@ public:
     // Reset complet (reboot EXCC)
     static void reset();
 
-    // Accès aux compteurs
+    // Accès aux compteurs de Delta A/B
     static int compteurH();
     static int compteurAH();
     static int compteurGlobal();
+
+    // Accès aux compteurs d'essieux
+    static int nombreEssieuxH();
+    static int nombreEssieuxAH();
+    static int nombreEssieuxTotal();
 
     // Deltas détectés pendant la frame courante
     static int deltaH;

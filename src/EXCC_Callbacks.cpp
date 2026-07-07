@@ -67,7 +67,7 @@ static ExccSignalLayout mapTypeToLayout(uint8_t t)
 {
     switch (t)
     {
-    case SIG_MANOEUVRE:
+    case TYPE_M:
         return ExccSignalLayout::MANOEUVRE;
 
     default:
