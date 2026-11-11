@@ -20,7 +20,6 @@ static TaskHandle_t s_boosterTaskHandle = nullptr;
 static bool s_boosterEnabled = true;
 extern uint8_t g_idCC;
 
-
 /*
  * ============================================================================
  *  SECTION : Timer HF RailCom
@@ -81,8 +80,11 @@ void EXCC_BoosterCore::taskEntry(void *param)
 {
     (void)param;
 
+    // PHASE 0 — booster.begin() SUPPRIMÉ ici :
+    // le booster est déjà initialisé dans EXCC_Main::begin(), AVANT le
+    // lancement de cette tâche (l'ancien code l'appelait 2 fois).
+
     EXCC_CanBooster::begin();
-    booster.begin();
 
     EXCC_Calibration::init();
     EXCC_Calibration::start();
