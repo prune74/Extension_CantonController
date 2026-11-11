@@ -3,7 +3,7 @@
 #include "EXCC_Booster_WS2812.h"
 #include "Protocol.h"
 #include "EXCC_Switches.h"
-#include "CanDccBooster.h"
+#include "CAN_DCC_RMT-Booster.h"
 #include "EXCC_Config.h"
 #include <Arduino.h>
 

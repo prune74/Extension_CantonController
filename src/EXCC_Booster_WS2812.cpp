@@ -1,7 +1,7 @@
 #include "EXCC_Booster_WS2812.h"
 
 #include "EXCC_BoosterHardware.h"
-#include "CanDccBooster.h"
+#include "CAN_DCC_RMT-Booster.h"
 #include "EXCC_CanBooster.h"
 #include "EXCC_Calibration.h"
 #include "EXCC_CAN_CC.h"
@@ -20,7 +20,7 @@ extern uint8_t g_idCC;
 // ---------------------------------------------------------------------------
 static EXCC_BoosterHardware s_hw;
 static BoosterConfig s_cfg;
-static CanDccBooster s_booster(s_hw, s_cfg);
+static CanDccRmtBooster s_booster(s_hw, s_cfg);
 
 extern EXCC_Canton_WS2812 cantonWS;
 

@@ -6,9 +6,9 @@
 
 #include <stdint.h>
 #include "EXCC_Config.h"  
-#include "CanDccBoosterHardware.h"
+#include "CAN_DCC_RMT-Booster_Hardware.h"
 
-class EXCC_BoosterHardware : public CanDccBoosterHardware
+class EXCC_BoosterHardware : public CanDccRmtBoosterHardware
 {
 public:
     void begin();

@@ -3,7 +3,7 @@
 
 /*
  * ============================================================================
- *  Protocol.h — Discovery 2026
+ *  Protocol.h — Gestion Canton
  * ============================================================================
  *  Structure modernisée :
  *    → une enum class par liaison CAN
@@ -95,6 +95,7 @@ enum class Cmd_CC_to_CC : uint16_t
     ASPECT_VOISIN = 0xE7,
     AIGUILLAGE = 0xE9,
     MESURE_PREPARE = 0xEB, // CC0 → CCx : préparer la mesure de vitesse
+    RECHERCHE_WAGON = 0xEC, // CC0 → CCx : Recherche directionnelle des wagons fugueurs
 };
 
 /* ============================================================================
@@ -129,7 +130,27 @@ enum class Cmd_CC_to_ERM : uint16_t
 {
     TEST_BUS = 0xB2,
     REQUEST_ID = 0xB4,
-    MESURE_VITESSE  = 0xB6,
+};
+
+/* ============================================================================
+ *  COMMANDES CC → CLF (Centrale de Logique Ferroviaire)
+ * ==========================================================================*/
+enum class Cmd_CC_to_CLF : uint16_t
+{
+    MESURE_VITESSE = 0xA0,
+    ESSIEUX_TRAIN = 0xA1,
+};
+
+/* ============================================================================
+ * COMMANDES CLF → CC (Centrale de Logique Ferroviaire)
+ ============================================================================*/
+enum class Cmd_CLF_to_CC : uint16_t
+{
+    TRAIN_VALIDE        = 0x90, // train validé → silence epoch
+    TRAIN_REARMER       = 0x91, // fin du silence
+    DEMANDE_MESURE      = 0x92, // demande vitesse + essieux
+    CLF_TIME            = 0x93, // synchronisation de l'heure (epoch)
+    TRAIN_COMPOSITION   = 0x94, // composition complète du train
 };
 
 /* ============================================================================
@@ -170,9 +191,19 @@ enum class Cmd_Global11 : uint16_t
  * ==========================================================================*/
 enum class Cmd_CAN_LaBox : uint16_t
 {
-    SYSTEM_CONTROL     = 0x00,  // Power ON/OFF, emergency stop global
-    LOCO_SPEED         = 0x04,  // Vitesse loco
-    LOCO_DIRECTION     = 0x05,  // Sens de marche
-    LOCO_FUNCTION      = 0x06,  // Fonctions F0..F28
-    LOCO_WRITECV_MAIN  = 0x08,  // Écriture CV sur voie principale
+    SYSTEM_CONTROL = 0x00,    // Power ON/OFF, emergency stop global
+    LOCO_SPEED = 0x04,        // Vitesse loco
+    LOCO_DIRECTION = 0x05,    // Sens de marche
+    LOCO_FUNCTION = 0x06,     // Fonctions F0..F28
+    LOCO_WRITECV_MAIN = 0x08, // Écriture CV sur voie principale
 };
+
+/* ============================================================================
+ *  ID Carte CLF - Centrale de Logique Ferrovière
+ * ==========================================================================*/
+constexpr uint16_t CLF_ID = 253;
+
+/* ============================================================================
+ *  ID Carte ERM - Exploration Reseau Maitre
+ * ==========================================================================*/
+constexpr uint16_t ERM_ID = 254;
