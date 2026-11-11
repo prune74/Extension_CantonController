@@ -11,208 +11,161 @@
 #error "Ce module doit être compilé pour ESP32 uniquement."
 #endif
 
-static constexpr int LEDC_CHANNEL = 0;
-
 /*
  * ============================================================================
- *  EXCC_BoosterHardware::begin()
+ *  PHASE 1 — version intérimaire :
+ *
+ *  L'ancien pseudo-DCC (LEDC 20 kHz sur PIN_DCC_PWM + PHASE sur PIN_DRV_PHASE)
+ *  est supprimé : ces pins n'existent plus dans le brochage cible.
+ *
+ *  Version DRV8874 mode PWM (PMODE strapé 3,3 V) :
+ *    - applyDcc   : IN1 = bit, IN2 = !bit (digitalWrite intérimaire —
+ *                   la Phase 2 remplacera ceci par la régénération RMT
+ *                   canal 7 avec les vrais timings 58/100 µs)
+ *    - cutout     : IN1 = IN2 = 1 → BRAKE
+ *    - failsafe   : IN1 = IN2 = 0 → COAST (Hi-Z), nSLEEP = 0
+ *
+ *  Tant que rien n'est câblé, ce code compile et s'exécute sans danger.
  * ============================================================================
- *  Point d’entrée du module matériel du booster.
- *
- *  Le booster repose sur trois sous-systèmes :
- *    1) DRV8874 → pont en H qui génère le DCC
- *    2) PWM LEDC → modulation du signal DCC
- *    3) ADC → mesures courant / tension / RailCom HF
- *
- *  ⚠️ IMPORTANT :
- *    Le RailCom HF est lu via l’ADC interne de l’ESP32 (ADC1_CHANNEL_0).
- *    Ce GPIO (GPIO36) n’apparaît PAS dans EXCC_Pins.h car :
- *      - c’est une entrée ADC ONLY
- *      - elle ne supporte pas pinMode()
- *      - elle ne supporte pas digitalRead()
- *      - elle est réservée à l’ADC interne
  */
 void EXCC_BoosterHardware::begin()
 {
     setupDrv8874();
-    setupPwmDcc();
-    setupAdc();   // <-- Configure aussi l’entrée RailCom HF
+    setupDccOutputs();
+    setupAdc();
 }
 
-/*
- * ============================================================================
- *  setupDrv8874()
- * ============================================================================
- *  Configure le driver DRV8874 :
- *    - nSLEEP : active/désactive le pont en H
- *    - PHASE  : polarité du signal DCC
- *    - FAULT  : détection des erreurs matérielles
- */
+/* ============================================================
+ * setupDrv8874() — DRV8874 mode PWM : IN1/IN2/nSLEEP/FAULT
+ * ============================================================ */
 void EXCC_BoosterHardware::setupDrv8874()
 {
+    pinMode(PIN_DRV_IN1, OUTPUT);
+    pinMode(PIN_DRV_IN2, OUTPUT);
     pinMode(PIN_DRV_NSLEEP, OUTPUT);
-    pinMode(PIN_DRV_PHASE, OUTPUT);
     pinMode(PIN_DRV_FAULT, INPUT_PULLUP);
 
-    // Démarrage propre
+    // Démarrage propre : COAST puis réveil du driver
+    digitalWrite(PIN_DRV_IN1, LOW);
+    digitalWrite(PIN_DRV_IN2, LOW);
     digitalWrite(PIN_DRV_NSLEEP, LOW);
-    digitalWrite(PIN_DRV_PHASE, LOW);
     delay(5);
-
-    // Activation du driver
     digitalWrite(PIN_DRV_NSLEEP, HIGH);
 }
 
-/*
- * ============================================================================
- *  enableOutput() / disableOutput()
- * ============================================================================
- *  Active ou coupe totalement la sortie DCC.
- */
-void EXCC_BoosterHardware::enableOutput()
+/* ============================================================
+ * setupDccOutputs() — PHASE 1 : remplace l'ancien setupPwmDcc()
+ * ============================================================ */
+void EXCC_BoosterHardware::setupDccOutputs()
 {
-    ledcWrite(LEDC_CHANNEL, 255);
-    digitalWrite(PIN_DRV_NSLEEP, HIGH);
+    // Rien de plus à configurer en intérim : IN1/IN2 sont en digitalWrite.
+    // PHASE 2 : l'init du RMT TX canal 7 (mem_block_num = 1, clk_div 2,
+    // ring buffer 4096) + inversion IN2 via matrice GPIO se fera ici,
+    // dans EXCC_DccRegen.
 }
 
-void EXCC_BoosterHardware::disableOutput()
-{
-    ledcWrite(LEDC_CHANNEL, 0);
-    digitalWrite(PIN_DRV_NSLEEP, LOW);
-}
-
-/*
- * ============================================================================
- *  isFaultActive()
- * ============================================================================
- *  Retourne true si le DRV8874 signale une erreur matérielle.
- */
-bool EXCC_BoosterHardware::isFaultActive()
-{
-    return digitalRead(PIN_DRV_FAULT) == LOW;
-}
-
-/*
- * ============================================================================
- *  setupPwmDcc()
- * ============================================================================
- *  Configure le PWM matériel pour générer le DCC.
- */
-void EXCC_BoosterHardware::setupPwmDcc()
-{
-    ledcSetup(LEDC_CHANNEL, 20000, 8);
-    ledcAttachPin(PIN_DCC_PWM, LEDC_CHANNEL);
-    ledcWrite(LEDC_CHANNEL, 0);
-}
-
-/*
- * ============================================================================
- *  applyDcc()
- * ============================================================================
- *  Applique un bit DCC reçu via le CAN Booster.
- */
+/* ============================================================
+ * applyDcc() — bit DCC reçu du CAN → IN1/IN2 (intérim, sans timing)
+ * ============================================================ */
 void EXCC_BoosterHardware::applyDcc(const uint8_t *data, uint8_t len)
 {
     if (len == 0)
         return;
 
-    digitalWrite(PIN_DRV_PHASE, data[0] ? HIGH : LOW);
-    enableOutput();
+    m_lastBit = data[0] ? 1 : 0;
+
+    // Intérim : niveau direct sur les entrées du DRV8874.
+    // Phase 2 : les bits iront dans le ring buffer RMT (DccRegen::emit)
+    // pour une régénération avec les vrais demi-bits 58/100 µs.
+    digitalWrite(PIN_DRV_IN1, m_lastBit ? HIGH : LOW);
+    digitalWrite(PIN_DRV_IN2, m_lastBit ? LOW : HIGH);   // inversé
+
+    digitalWrite(PIN_DRV_NSLEEP, HIGH);   // sortie active
 }
 
-/*
- * ============================================================================
- *  enableCutout() / disableCutout()
- * ============================================================================
- *  Le cutout RailCom coupe brièvement le DCC pour permettre
- *  aux décodeurs de parler.
- *
- *  → Pendant cette fenêtre, EXCC lit le RailCom HF via l’ADC.
- */
+/* ============================================================
+ * Cutout RailCom : IN1 = IN2 = 1 → BRAKE (rails au potentiel commun)
+ * ============================================================ */
 void EXCC_BoosterHardware::enableCutout()
 {
-    ledcWrite(LEDC_CHANNEL, 0);
+    digitalWrite(PIN_DRV_IN1, HIGH);
+    digitalWrite(PIN_DRV_IN2, HIGH);
 }
 
 void EXCC_BoosterHardware::disableCutout()
 {
-    ledcWrite(LEDC_CHANNEL, 255);
+    // Réinjection du dernier bit connu (reprise biphasée propre)
+    digitalWrite(PIN_DRV_IN1, m_lastBit ? HIGH : LOW);
+    digitalWrite(PIN_DRV_IN2, m_lastBit ? LOW : HIGH);
 }
 
-/*
- * ============================================================================
- *  setupAdc()
- * ============================================================================
- *  Configure les ADC internes :
- *    - ADC1_CHANNEL_4 → courant (GPIO32)
- *    - ADC1_CHANNEL_5 → tension (GPIO33)
- *    - ADC1_CHANNEL_0 → RailCom HF (GPIO36)
- */
+/* ============================================================
+ * enableOutput() / disableOutput()
+ * ============================================================ */
+void EXCC_BoosterHardware::enableOutput()
+{
+    digitalWrite(PIN_DRV_NSLEEP, HIGH);
+    digitalWrite(PIN_DRV_IN1, m_lastBit ? HIGH : LOW);
+    digitalWrite(PIN_DRV_IN2, m_lastBit ? LOW : HIGH);
+}
+
+void EXCC_BoosterHardware::disableOutput()
+{
+    // COAST : IN1 = IN2 = 0 (Hi-Z), driver en veille
+    digitalWrite(PIN_DRV_IN1, LOW);
+    digitalWrite(PIN_DRV_IN2, LOW);
+    digitalWrite(PIN_DRV_NSLEEP, LOW);
+}
+
+/* ============================================================
+ * isFaultActive()
+ * ============================================================ */
+bool EXCC_BoosterHardware::isFaultActive()
+{
+    return digitalRead(PIN_DRV_FAULT) == LOW;
+}
+
+/* ============================================================
+ * setupAdc() — IPROPI (32/CH4), VRAIL (33/CH5), RailCom HF (36/CH0)
+ * ============================================================ */
 void EXCC_BoosterHardware::setupAdc()
 {
     analogReadResolution(12);
     analogSetAttenuation(ADC_11db);
 
     adc1_config_width(ADC_WIDTH_BIT_12);
-
     adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_12);
     adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_12);
     adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_12);
 }
 
-/*
- * ============================================================================
- *  readCurrent_mA()
- * ============================================================================
- *  Mesure le courant via IPROPI.
- */
+/* ============================================================
+ * readCurrent_mA() — IPROPI : I = V / (R_IPROPI * A_IPROPI)
+ * ============================================================ */
 uint16_t EXCC_BoosterHardware::readCurrent_mA()
 {
-    // Lecture brute ADC1 (GPIO32 → ADC1_CHANNEL_4)
     int raw = adc1_get_raw(ADC1_CHANNEL_4);
-
-    // Conversion en tension
     float v = (raw / 4095.0f) * 3.3f;
-
-    // Conversion en courant (A)
     float currentA = v / (EXCC_IPROPI_R_OHMS * EXCC_IPROPI_GAIN_A_PER_A);
     return (uint16_t)(currentA * 1000.0f);
 }
 
-/*
- * ============================================================================
- *  readVoltage_mV()
- * ============================================================================
- *  Mesure la tension voie DCC.
- */
+/* ============================================================
+ * readVoltage_mV() — pont diviseur R1/R2
+ * ============================================================ */
 uint16_t EXCC_BoosterHardware::readVoltage_mV()
 {
-    // Lecture brute ADC1 (GPIO33 → ADC1_CHANNEL_5)
     int raw = adc1_get_raw(ADC1_CHANNEL_5);
-
-    // Conversion en tension ADC
     float v = (raw / 4095.0f) * EXCC_ADC_VREF;
-
-    // Application du diviseur de tension
     float vrail = v * EXCC_ADC_VOLTAGE_FACTOR;
     return (uint16_t)(vrail * 1000.0f);
 }
 
-/*
- * ============================================================================
- *  readRailcomSample()
- * ============================================================================
- *  Retourne un échantillon brut du signal RailCom HF.
- *
- *  ⚠️ C’est la fonction utilisée par la lib CanDccBoosterRailCom.
- *
- *  Elle lit directement ADC1_CHANNEL_0 (GPIO36).
- *
- *  → C’est TON entrée RailCom locale.
- *  → Elle n’apparaît pas dans EXCC_Pins.h car les ADC internes
- *    ne passent pas par ce fichier.
- */
+/* ============================================================
+ * readRailcomSample() — intérim : ADC sur GPIO36
+ * (Phase 2 : remplacé par le décodage UART2 RX à 250 kbit/s)
+ * ============================================================ */
 int16_t EXCC_BoosterHardware::readRailcomSample()
 {
-    return adc1_get_raw(ADC1_CHANNEL_0);
+    return (int16_t)(adc1_get_raw(ADC1_CHANNEL_0) - 2048);
 }

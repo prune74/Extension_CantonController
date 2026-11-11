@@ -5,7 +5,7 @@
 #endif
 
 #include <stdint.h>
-#include "EXCC_Config.h"  
+#include "EXCC_Config.h"
 #include "CAN_DCC_RMT-Booster_Hardware.h"
 
 class EXCC_BoosterHardware : public CanDccRmtBoosterHardware
@@ -28,6 +28,8 @@ public:
 
 private:
     void setupDrv8874();
-    void setupPwmDcc();
+    void setupDccOutputs();   // PHASE 1 : remplace setupPwmDcc (LEDC supprimé)
     void setupAdc();
+
+    uint8_t m_lastBit = 0;    // dernier bit DCC appliqué (réinjection post-cutout)
 };

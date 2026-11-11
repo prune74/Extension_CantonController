@@ -3,12 +3,6 @@
 #include "EXCC_Pins.h"
 #include <Arduino.h>
 
-// Adresse I2C du digipot (à ajuster selon ton câblage)
-static constexpr uint8_t DIGIPOT_ADDR = 0x2E;
-
-// Registre du wiper (MCP4551 / MCP4561)
-static constexpr uint8_t DIGIPOT_REG  = 0x00;
-
 // Valeurs à ajuster après calibration
 static constexpr uint8_t DIGIPOT_HO = 23;   // 15V
 static constexpr uint8_t DIGIPOT_N  = 30;   // 12V
