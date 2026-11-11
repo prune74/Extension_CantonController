@@ -94,7 +94,7 @@ void EXCC_Signaux_WS2812::setPosition(uint8_t pos) noexcept
 }
 
 /* ============================================================================
- *  6) Mapping matériel universel Discovery 2026
+ *  6) Mapping matériel universel Chemin de Fer du Chablais (CFC)
  * ==========================================================================*/
 void EXCC_Signaux_WS2812::rebuildMapping() noexcept
 {

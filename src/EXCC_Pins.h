@@ -8,7 +8,7 @@
 
 /*
  * ============================================================
- *  EXCC_Pins.h — Mappage matériel officiel Discovery 2026
+ *  EXCC_Pins.h — Mappage matériel officiel Chemin de Fer du Chablais (CFC)
  *  Version optimisée ESP32‑DEVKIT V1 (redistribution complète)
  * ============================================================
  */
@@ -16,24 +16,24 @@
 /* ============================================================
    Quadrature Essieux (ADC1 uniquement)
    ============================================================ */
-static const gpio_num_t PIN_QUAD_H_A  = GPIO_NUM_32;  // ADC1_CH4
-static const gpio_num_t PIN_QUAD_H_B  = GPIO_NUM_33;  // ADC1_CH5
-static const gpio_num_t PIN_QUAD_AH_A = GPIO_NUM_34;  // entrée pure
-static const gpio_num_t PIN_QUAD_AH_B = GPIO_NUM_35;  // entrée pure
+static const gpio_num_t PIN_QUAD_H_A = GPIO_NUM_32;  // ADC1_CH4
+static const gpio_num_t PIN_QUAD_H_B = GPIO_NUM_33;  // ADC1_CH5
+static const gpio_num_t PIN_QUAD_AH_A = GPIO_NUM_34; // entrée pure
+static const gpio_num_t PIN_QUAD_AH_B = GPIO_NUM_35; // entrée pure
 
 /* ============================================================
    WS2812 — Signaux SNCF (H / AH)
    ============================================================ */
-static const gpio_num_t PIN_WS2812_H       = GPIO_NUM_18; // Feux H
-static const gpio_num_t PIN_WS2812_H_OEIL  = GPIO_NUM_19; // Œilleton H
+static const gpio_num_t PIN_WS2812_H = GPIO_NUM_18;      // Feux H
+static const gpio_num_t PIN_WS2812_H_OEIL = GPIO_NUM_19; // Œilleton H
 
-static const gpio_num_t PIN_WS2812_AH      = GPIO_NUM_23; // Feux AH
+static const gpio_num_t PIN_WS2812_AH = GPIO_NUM_23;      // Feux AH
 static const gpio_num_t PIN_WS2812_AH_OEIL = GPIO_NUM_25; // Œilleton AH
 
 /* ============================================================
    WS2812 — Directions
    ============================================================ */
-static const gpio_num_t PIN_WS2812_DIR_H  = GPIO_NUM_26;
+static const gpio_num_t PIN_WS2812_DIR_H = GPIO_NUM_26;
 static const gpio_num_t PIN_WS2812_DIR_AH = GPIO_NUM_27;
 
 /* ============================================================
@@ -44,9 +44,9 @@ static const gpio_num_t PIN_WS2812_STATUS = GPIO_NUM_15;
 /* ============================================================
    PCA9685 — Servos
    ============================================================ */
-static const uint8_t PCA_SERVO_H_1  = 0;
-static const uint8_t PCA_SERVO_H_2  = 1;
-static const uint8_t PCA_SERVO_H_3  = 2;
+static const uint8_t PCA_SERVO_H_1 = 0;
+static const uint8_t PCA_SERVO_H_2 = 1;
+static const uint8_t PCA_SERVO_H_3 = 2;
 static const uint8_t PCA_SERVO_AH_1 = 3;
 static const uint8_t PCA_SERVO_AH_2 = 4;
 static const uint8_t PCA_SERVO_AH_3 = 5;
@@ -76,10 +76,10 @@ static const gpio_num_t PIN_MCP23017_INT = GPIO_NUM_17; // non utilisé
    Booster DRV8874 + PWM DCC + ADC1
    ============================================================ */
 static const gpio_num_t PIN_DRV_NSLEEP = GPIO_NUM_13;
-static const gpio_num_t PIN_DRV_PHASE  = GPIO_NUM_14;
-static const gpio_num_t PIN_DRV_FAULT  = GPIO_NUM_2;
+static const gpio_num_t PIN_DRV_PHASE = GPIO_NUM_14;
+static const gpio_num_t PIN_DRV_FAULT = GPIO_NUM_2;
 
-static const gpio_num_t PIN_DCC_PWM    = GPIO_NUM_16; // RMT/PWM OK
+static const gpio_num_t PIN_DCC_PWM = GPIO_NUM_16; // RMT/PWM OK
 
 // ============================================================================
 //  NOTE IMPORTANTE : ADC du Booster EXCC

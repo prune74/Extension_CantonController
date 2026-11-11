@@ -16,7 +16,7 @@ class EXCC_Booster_WS2812;
 
 /*
  * ============================================================
- *  Interface EXCC_Main — Version WS2812 (Gestion Canton 2026)
+ *  Interface EXCC_Main — Version WS2812 (Chemin de Fer du Chablais (CFC))
  * ============================================================
  *
  * Architecture générale :
@@ -46,12 +46,12 @@ namespace EXCC_Main
 extern Adafruit_PWMServoDriver g_pca9685;
 
 // Signaux SNCF (WS2812)
-extern EXCC_Signaux_WS2812 signauxH;   // Mât horaire
-extern EXCC_Signaux_WS2812 signauxAH;  // Mât anti-horaire
+extern EXCC_Signaux_WS2812 signauxH;  // Mât horaire
+extern EXCC_Signaux_WS2812 signauxAH; // Mât anti-horaire
 
 // Feux directionnels (WS2812 / WS2815)
-extern EXCC_LedDirection_WS2812 directionH_WS;   // Direction horaire
-extern EXCC_LedDirection_WS2812 directionAH_WS;  // Direction anti-horaire
+extern EXCC_LedDirection_WS2812 directionH_WS;  // Direction horaire
+extern EXCC_LedDirection_WS2812 directionAH_WS; // Direction anti-horaire
 
 // Canton (WS2812)
 extern EXCC_Canton_WS2812 cantonWS;

@@ -6,7 +6,7 @@
 
 /*
  * ============================================================================
- *  EXCC_System — Version WS2812 (Gestion Canton 2026)
+ *  EXCC_System — Version WS2812 (Chemin de Fer du Chablais (CFC))
  * ----------------------------------------------------------------------------
  *  Rôle :
  *    Point d’entrée de l’initialisation complète du système EXCC.

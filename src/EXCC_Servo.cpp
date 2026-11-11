@@ -1,6 +1,6 @@
 /*
  * Module : EXCC_Servo
- * Rôle   : Pilotage avancé des servos d’aiguillage Gestion Canton 2026.
+ * Rôle   : Pilotage avancé des servos d’aiguillage Chemin de Fer du Chablais (CFC).
  *
  * Fonctionnement général :
  *   - 6 servos maximum (PCA9685)

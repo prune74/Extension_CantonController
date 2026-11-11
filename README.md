@@ -1,4 +1,4 @@
-# Extension Canton Controller (EXCC) - Gestion Canton 2026
+# Extension Canton Controller (EXCC) - Chemin de Fer du Chablais (CFC)
 
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-ESP32-blue)](https://platformio.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -26,7 +26,7 @@
 
 ## 🚂 Présentation
 
-**EXCC (Extension Canton Controller)** est un firmware embarqué pour ESP32 conçu pour la gestion avancée de cantons ferroviaires en modélisme numérique DCC. Il fait partie de l'écosystème **Gestion Canton 2026** et fonctionne en synergie avec d'autres modules comme le **CC (Canton Controller)** et le **DCC_CAN_RMT-Booster**.
+**EXCC (Extension Canton Controller)** est un firmware embarqué pour ESP32 conçu pour la gestion avancée de cantons ferroviaires en modélisme numérique DCC. Il fait partie de l'écosystème **Chemin de Fer du Chablais (CFC)** et fonctionne en synergie avec d'autres modules comme le **CC (Canton Controller)** et le **DCC_CAN_RMT-Booster**.
 
 Ce système permet de :
 - Gérer l'occupation des cantons via détection de courant
@@ -805,7 +805,7 @@ BoosterInterface* booster = new RMT_BoosterAdapter();
 
 ## 📝 Changelog
 
-### Version 2026 (Gestion Canton 2026)
+### Version 2026 (Chemin de Fer du Chablais (CFC))
 
 - **Migration vers WS2812** : Tous les signaux et LED utilisent maintenant WS2812/WS2815
 - **Refactorisation du protocole** : Organisation moderne avec enum class par liaison CAN
@@ -864,4 +864,4 @@ Pour toute question ou problème, ouvrez une **Issue** sur GitHub.
 ---
 
 *Documentation générée le 11 novembre 2025*
-*Version : Gestion Canton 2026*
+*Version : Chemin de Fer du Chablais (CFC)*

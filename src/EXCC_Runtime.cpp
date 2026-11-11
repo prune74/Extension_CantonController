@@ -3,7 +3,7 @@
  *  Module : EXCC_Runtime (WS2812 Version)
  *  Rôle   : Boucle d’exécution principale EXCC (hors Booster).
  *
- *  Fonctionnement général (Gestion Canton 2026) :
+ *  Fonctionnement général (Chemin de Fer du Chablais (CFC)) :
  *    - Appelé en continu par EXCC_Main::loop()
  *    - Exécute toutes les tâches temps réel EXCC :
  *         1) Mise à jour signaux SNCF WS2812 (H et AH)

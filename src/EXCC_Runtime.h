@@ -6,7 +6,7 @@
 
 /*
  * ============================================================================
- *  EXCC_Runtime — Version WS2812 (Gestion Canton 2026)
+ *  EXCC_Runtime — Version WS2812 (Chemin de Fer du Chablais (CFC))
  * ----------------------------------------------------------------------------
  *  Rôle :
  *    Boucle d’exécution principale EXCC (hors Booster).

@@ -8,7 +8,7 @@
 
 /*
  * ============================================================
- *  EXCC_StatusLed.h — Gestion des LEDs de statut Discovery 2026
+ *  EXCC_StatusLed.h — Gestion des LEDs de statut Chemin de Fer du Chablais (CFC)
  * ------------------------------------------------------------
  *  LEDs :
  *    LED 0 : Canton (gérée ailleurs)

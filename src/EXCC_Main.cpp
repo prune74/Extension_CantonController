@@ -1,6 +1,6 @@
 /*
  * Module : EXCC_Main (WS2812 Version)
- * Rôle   : Point d’entrée du firmware EXCC (Gestion Canton 2026).
+ * Rôle   : Point d’entrée du firmware EXCC (Chemin de Fer du Chablais (CFC)).
  */
 
 #include "EXCC_Main.h"

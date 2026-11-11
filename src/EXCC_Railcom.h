@@ -1,5 +1,5 @@
 /*
- * Railcom.h — Gestion Canton 2026
+ * Railcom.h — Chemin de Fer du Chablais (CFC)
  * ---------------------------------------------------------------------------
  * Réception de l’adresse RailCom détectée par l’Extension Canton Controller
  * (EXCC) et transmise au Canton Controller (CC).
@@ -31,5 +31,5 @@ public:
     static void onRailcom(uint8_t low, uint8_t high);
 
 private:
-    static volatile uint16_t s_address;  // Dernière adresse RailCom reçue
+    static volatile uint16_t s_address; // Dernière adresse RailCom reçue
 };

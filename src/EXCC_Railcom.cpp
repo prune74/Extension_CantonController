@@ -1,5 +1,5 @@
 /*
- * Railcom.cpp — Gestion Canton 2026
+ * Railcom.cpp — Chemin de Fer du Chablais (CFC)
  * ---------------------------------------------------------------------------
  * Réception de l’adresse RailCom détectée par l’Extension Canton Controller
  * (EXCC) et transmise au Canton Controller (CC).

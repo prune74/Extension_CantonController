@@ -12,7 +12,7 @@
  *    - temporisations canton
  *    - paramètres WS2812 (signaux SNCF)
  *    - intensités LED directionnelles (PCA9685)
- *    - seuils de sécurité du Booster Gestion Canton 2026
+ *    - seuils de sécurité du Booster Chemin de Fer du Chablais (CFC)
  *    - paramètres analogiques DRV8874 (IPROPI)
  *
  *  ⚠️ Aucun aspect SNCF ici.
@@ -63,7 +63,7 @@
 #define EXCC_DIR_LED3_INTENSITE 255
 
 /* ============================================================
- *  Sécurité Booster Gestion Canton 2026
+ *  Sécurité Booster Chemin de Fer du Chablais (CFC)
  * ------------------------------------------------------------
  *  Seuils de protection voie :
  *
@@ -126,7 +126,7 @@
     ((EXCC_ADC_VOLTAGE_R1_OHMS + EXCC_ADC_VOLTAGE_R2_OHMS) / EXCC_ADC_VOLTAGE_R2_OHMS)
 
 /* ============================================================
- *  État global du Booster Gestion Canton 2026
+ *  État global du Booster Chemin de Fer du Chablais (CFC)
  * ------------------------------------------------------------
  *  Utilisé dans EXCC_BoosterCore pour :
  *    - télémétrie
@@ -144,7 +144,7 @@ enum ExccBoosterEtat : uint8_t
 };
 
 /* ============================================================
- *  Détection d’occupation par courant (Booster Gestion Canton 2026)
+ *  Détection d’occupation par courant (Booster Chemin de Fer du Chablais (CFC))
  * ------------------------------------------------------------
  *  L’occupation du canton est déterminée par la consommation
  *  de courant mesurée via IPROPI (DRV8874).
@@ -163,7 +163,7 @@ enum ExccBoosterEtat : uint8_t
  * ------------------------------------------------------------
  *  AIG_COUNT représente le nombre total d’aiguillages gérés.
  *
- *  Relation structurelle Gestion Canton 2026 :
+ *  Relation structurelle Chemin de Fer du Chablais (CFC) :
  *      1 aiguillage = 1 servo = 2 micro‑switchs
  *
  *  Cette valeur définit donc :

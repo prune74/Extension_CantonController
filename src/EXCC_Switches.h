@@ -11,7 +11,7 @@
 /*
  * ============================================================
  *  EXCC_Switches.h — Gestion des micro-switchs d’aiguilles
- *  + sécurité anti-blocage (version Discovery 2026)
+ *  + sécurité anti-blocage (version Chemin de Fer du Chablais (CFC))
  * ------------------------------------------------------------
  *  Rôle :
  *    - Lecture des micro-switchs via MCP23017
@@ -45,8 +45,8 @@ public:
     static void notifierMouvementDemarre(uint8_t idx);
 
     // Helpers pour EXCC_StatusLed (LED Switches 4D)
-    static uint8_t getWorstState();   // OK / ERREUR / BLOQUE
-    static bool anyMovement();        // au moins une aiguille en mouvement
+    static uint8_t getWorstState(); // OK / ERREUR / BLOQUE
+    static bool anyMovement();      // au moins une aiguille en mouvement
 
 private:
     // Driver MCP23017
@@ -57,14 +57,14 @@ private:
     static const uint8_t swDevie[AIG_COUNT];
 
     // Derniers états envoyés au CC
-    static uint8_t  lastPos[AIG_COUNT];
-    static uint8_t  lastEtat[AIG_COUNT];
+    static uint8_t lastPos[AIG_COUNT];
+    static uint8_t lastEtat[AIG_COUNT];
     static uint32_t lastSendMs[AIG_COUNT];
 
     // Suivi du mouvement pour sécurité anti-blocage
     static uint32_t moveStartMs[AIG_COUNT];
     static uint32_t moveMaxMs[AIG_COUNT];
-    static bool     movementActive[AIG_COUNT];
+    static bool movementActive[AIG_COUNT];
 
     // Lecture brute des micro-switchs
     static uint8_t lirePosition(uint8_t idx);
