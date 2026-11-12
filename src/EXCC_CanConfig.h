@@ -38,7 +38,7 @@ public:
             cfg.miso_pin  = GPIO_NUM_NC;
 
             cfg.quartz    = 0;
-            cfg.tolerance = 0;
+
             cfg.loopback  = false;
             return cfg;
         }

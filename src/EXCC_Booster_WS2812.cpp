@@ -6,6 +6,7 @@
 #include "EXCC_Calibration.h"
 #include "EXCC_CAN_CC.h"
 #include "EXCC_Canton_WS2812.h"
+#include "EXCC_RailCom.h"   // PHASE 2 : décodage UART2 (remplace l'ADC HF)
 
 extern uint8_t g_idCC;
 
@@ -21,6 +22,7 @@ extern uint8_t g_idCC;
 static EXCC_BoosterHardware s_hw;
 static BoosterConfig s_cfg;
 static CanDccRmtBooster s_booster(s_hw, s_cfg);
+static EXCC_RailCom s_railcom;   // PHASE 2 : UART2 RX 250 kbit/s sur RAILCOM_ISO
 
 extern EXCC_Canton_WS2812 cantonWS;
 
@@ -48,6 +50,9 @@ void EXCC_Booster_WS2812::begin()
     s_cfg.railcomEnabled = true;
 
     s_booster.setConfig(s_cfg);
+
+    // PHASE 2 : décodeur RailCom UART2 (front-end BAT54 + TLV9151 + TLP2362)
+    s_railcom.begin();
 }
 
 // ---------------------------------------------------------------------------
@@ -87,12 +92,11 @@ void EXCC_Booster_WS2812::update()
     m_voltage_mV = t.voltage_mV;
     m_faultThermal = (t.error == BoosterError::HARDWARE_FAULT);
 
-    // ⭐ Correction : envoyerRailcom(g_idCC, type, adresse)
+    // Adresse RailCom remontée par le hook onCutoutEnd (PHASE 2)
     if (t.railcomAddress != BoosterConstants::RAILCOM_NO_ADDRESS)
         EXCC_CAN_CC::envoyerRailcom(g_idCC, 0, t.railcomAddress);
 
-
-    // L’occupation est gérée dans EXCC_Occupation
+    // L'occupation est gérée dans EXCC_Occupation
 }
 
 // ---------------------------------------------------------------------------
@@ -100,25 +104,35 @@ void EXCC_Booster_WS2812::update()
 // ---------------------------------------------------------------------------
 void EXCC_Booster_WS2812::onCanMessage(uint32_t id, const uint8_t *data, uint8_t len)
 {
-    s_booster.onCanMessage(id, data, len);
+    s_booster.onCanMessage((uint16_t)id, data, len);
 }
 
 // ---------------------------------------------------------------------------
-//  RailCom hooks
+//  RailCom hooks — PHASE 2 : UART2 sur RAILCOM_ISO (GPIO36)
+//  arm()    : appelé sur trame 0x101 START (le Core passe la voie en BRAKE)
+//  collect(): appelé sur trame 0x101 END  → décode CH1/CH2 de la fenêtre
 // ---------------------------------------------------------------------------
 void EXCC_Booster_WS2812::onCutoutStart()
 {
-    s_booster.onCutoutStart();
+    s_railcom.arm();             // purge le RX avant la fenêtre
+    s_booster.onCutoutStart();  // logique interne lib (si utilisée)
 }
 
 void EXCC_Booster_WS2812::onCutoutEnd()
 {
-    s_booster.onCutoutEnd();
+    // Décode l'adresse reçue pendant la fenêtre (~488 µs)
+    const uint16_t addr = s_railcom.collect();
+
+    s_booster.onCutoutEnd();    // la lib range son propre résultat (obsolète ici)
+
+    if (addr != 0)
+        EXCC_CAN_CC::envoyerRailcom(g_idCC, 0, addr);
 }
 
+// PHASE 2 : obsolète (l'ADC HF a disparu) — corps vide, le header
+// continue de déclarer la méthode pour compatibilité.
 void EXCC_Booster_WS2812::feedRailcomSample()
 {
-    s_booster.feedRailcomSample();
 }
 
 // ---------------------------------------------------------------------------

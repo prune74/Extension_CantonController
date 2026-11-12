@@ -5,7 +5,7 @@
 #include "EXCC_Calibration.h"
 #include "EXCC_CAN_CC.h"
 #include "EXCC_Main.h"
-#include "EXCC_Callbacks.h"   // ⭐ pour g_idCC
+#include "EXCC_Callbacks.h"   // pour g_idCC
 
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
@@ -22,18 +22,12 @@ extern uint8_t g_idCC;
 
 /*
  * ============================================================================
- *  SECTION : Timer HF RailCom
+ *  PHASE 2 — le timer HF RailCom (10 µs) a été SUPPRIMÉ :
+ *  l'échantillonnage ADC a été remplacé par le décodage UART2 250 kbit/s
+ *  (EXCC_RailCom, hooks dans EXCC_Booster_WS2812). Zéro CPU pour la
+ *  capture RailCom, plus aucune interruption à 100 kHz.
  * ============================================================================
  */
-static hw_timer_t *s_railcomTimer = nullptr;
-
-void IRAM_ATTR railcomTimerISR()
-{
-    if (EXCC_CanBooster::isCutoutActive())
-    {
-        booster.feedRailcomSample();
-    }
-}
 
 /*
  * ============================================================================
@@ -44,11 +38,6 @@ void EXCC_BoosterCore::startTask()
 {
     if (s_boosterTaskHandle != nullptr)
         return;
-
-    s_railcomTimer = timerBegin(0, 80, true);
-    timerAttachInterrupt(s_railcomTimer, &railcomTimerISR, true);
-    timerAlarmWrite(s_railcomTimer, 10, true);
-    timerAlarmEnable(s_railcomTimer);
 
     xTaskCreatePinnedToCore(
         EXCC_BoosterCore::taskEntry,
@@ -82,7 +71,7 @@ void EXCC_BoosterCore::taskEntry(void *param)
 
     // PHASE 0 — booster.begin() SUPPRIMÉ ici :
     // le booster est déjà initialisé dans EXCC_Main::begin(), AVANT le
-    // lancement de cette tâche (l'ancien code l'appelait 2 fois).
+    // lancement de cette tâche.
 
     EXCC_CanBooster::begin();
 

@@ -3,145 +3,118 @@
 
 #include <Arduino.h>
 #include <driver/adc.h>
+#include "soc/gpio_sig_map.h" // RMT_SIG_OUT0_IDX
 
-// ---------------------------------------------------------------------------
-// Protection plateforme : ce module nécessite l'ESP32
-// ---------------------------------------------------------------------------
 #ifndef ESP32
 #error "Ce module doit être compilé pour ESP32 uniquement."
 #endif
 
-/*
- * ============================================================================
- *  PHASE 1 — version intérimaire :
- *
- *  L'ancien pseudo-DCC (LEDC 20 kHz sur PIN_DCC_PWM + PHASE sur PIN_DRV_PHASE)
- *  est supprimé : ces pins n'existent plus dans le brochage cible.
- *
- *  Version DRV8874 mode PWM (PMODE strapé 3,3 V) :
- *    - applyDcc   : IN1 = bit, IN2 = !bit (digitalWrite intérimaire —
- *                   la Phase 2 remplacera ceci par la régénération RMT
- *                   canal 7 avec les vrais timings 58/100 µs)
- *    - cutout     : IN1 = IN2 = 1 → BRAKE
- *    - failsafe   : IN1 = IN2 = 0 → COAST (Hi-Z), nSLEEP = 0
- *
- *  Tant que rien n'est câblé, ce code compile et s'exécute sans danger.
- * ============================================================================
- */
+// 0x100 = SIG_GPIO_OUT : déconnecte la pin du périphérique (matrice)
+#define GPIO_SIG_DETACH 0x100
+
 void EXCC_BoosterHardware::begin()
 {
     setupDrv8874();
-    setupDccOutputs();
     setupAdc();
+    // Régénération RMT canal 7 puis routage matrice IN1/IN2
+    m_regen.begin();
+    connectDcc();
 }
 
 /* ============================================================
- * setupDrv8874() — DRV8874 mode PWM : IN1/IN2/nSLEEP/FAULT
+ * setupDrv8874() — nSLEEP (latch PMODE), FAULT, état initial COAST
  * ============================================================ */
 void EXCC_BoosterHardware::setupDrv8874()
 {
-    pinMode(PIN_DRV_IN1, OUTPUT);
-    pinMode(PIN_DRV_IN2, OUTPUT);
-    pinMode(PIN_DRV_NSLEEP, OUTPUT);
     pinMode(PIN_DRV_FAULT, INPUT_PULLUP);
-
-    // Démarrage propre : COAST puis réveil du driver
-    digitalWrite(PIN_DRV_IN1, LOW);
-    digitalWrite(PIN_DRV_IN2, LOW);
-    digitalWrite(PIN_DRV_NSLEEP, LOW);
+    pinMode(PIN_DRV_NSLEEP, OUTPUT);
+    digitalWrite(PIN_DRV_NSLEEP, LOW); // COAST d'abord
     delay(5);
-    digitalWrite(PIN_DRV_NSLEEP, HIGH);
+    digitalWrite(PIN_DRV_NSLEEP, HIGH); // lève nSLEEP : PMODE (PWM) latché ici
 }
 
 /* ============================================================
- * setupDccOutputs() — PHASE 1 : remplace l'ancien setupPwmDcc()
+ * connectDcc() — IN1 = RMT direct, IN2 = même signal inversé
  * ============================================================ */
-void EXCC_BoosterHardware::setupDccOutputs()
+void EXCC_BoosterHardware::connectDcc()
 {
-    // Rien de plus à configurer en intérim : IN1/IN2 sont en digitalWrite.
-    // PHASE 2 : l'init du RMT TX canal 7 (mem_block_num = 1, clk_div 2,
-    // ring buffer 4096) + inversion IN2 via matrice GPIO se fera ici,
-    // dans EXCC_DccRegen.
+    gpio_matrix_out((gpio_num_t)PIN_DRV_IN1, RMT_SIG_OUT0_IDX + RMT_DCC_CHANNEL, false, false);
+    gpio_matrix_out((gpio_num_t)PIN_DRV_IN2, RMT_SIG_OUT0_IDX + RMT_DCC_CHANNEL, true, false);
+    m_connected = true;
+    m_braking = false;
 }
 
 /* ============================================================
- * applyDcc() — bit DCC reçu du CAN → IN1/IN2 (intérim, sans timing)
+ * applyDcc() — bit DCC du CAN → item RMT (timings matériels exacts)
+ * Appelé par le Core à CHAQUE bit : le ring buffer RMT absorbe
+ * l'avance, le matériel cadence les demi-bits. Non bloquant.
  * ============================================================ */
 void EXCC_BoosterHardware::applyDcc(const uint8_t *data, uint8_t len)
 {
     if (len == 0)
         return;
 
-    m_lastBit = data[0] ? 1 : 0;
-
-    // Intérim : niveau direct sur les entrées du DRV8874.
-    // Phase 2 : les bits iront dans le ring buffer RMT (DccRegen::emit)
-    // pour une régénération avec les vrais demi-bits 58/100 µs.
-    digitalWrite(PIN_DRV_IN1, m_lastBit ? HIGH : LOW);
-    digitalWrite(PIN_DRV_IN2, m_lastBit ? LOW : HIGH);   // inversé
-
-    digitalWrite(PIN_DRV_NSLEEP, HIGH);   // sortie active
+    const uint8_t bit = data[0] ? 1 : 0;
+    m_regen.emit(&bit, 1);
+    digitalWrite(PIN_DRV_NSLEEP, HIGH); // sortie active
 }
 
 /* ============================================================
- * Cutout RailCom : IN1 = IN2 = 1 → BRAKE (rails au potentiel commun)
+ * Cutout : détache les IN du RMT, force 1/1 → BRAKE
+ * (fenêtre ~488 µs calée LaBox côté convertisseur)
  * ============================================================ */
 void EXCC_BoosterHardware::enableCutout()
 {
-    digitalWrite(PIN_DRV_IN1, HIGH);
-    digitalWrite(PIN_DRV_IN2, HIGH);
+    gpio_matrix_out((gpio_num_t)PIN_DRV_IN1, GPIO_SIG_DETACH, false, false);
+    gpio_matrix_out((gpio_num_t)PIN_DRV_IN2, GPIO_SIG_DETACH, false, false);
+    gpio_set_level((gpio_num_t)PIN_DRV_IN1, 1);
+    gpio_set_level((gpio_num_t)PIN_DRV_IN2, 1);
+    m_braking = true;
 }
 
 void EXCC_BoosterHardware::disableCutout()
 {
-    // Réinjection du dernier bit connu (reprise biphasée propre)
-    digitalWrite(PIN_DRV_IN1, m_lastBit ? HIGH : LOW);
-    digitalWrite(PIN_DRV_IN2, m_lastBit ? LOW : HIGH);
+    connectDcc(); // rebranche le biphasé
 }
 
 /* ============================================================
- * enableOutput() / disableOutput()
+ * enableOutput() / disableOutput() — reconnexion / COAST
  * ============================================================ */
 void EXCC_BoosterHardware::enableOutput()
 {
     digitalWrite(PIN_DRV_NSLEEP, HIGH);
-    digitalWrite(PIN_DRV_IN1, m_lastBit ? HIGH : LOW);
-    digitalWrite(PIN_DRV_IN2, m_lastBit ? LOW : HIGH);
+    if (!m_connected)
+        connectDcc();
 }
 
 void EXCC_BoosterHardware::disableOutput()
 {
-    // COAST : IN1 = IN2 = 0 (Hi-Z), driver en veille
-    digitalWrite(PIN_DRV_IN1, LOW);
-    digitalWrite(PIN_DRV_IN2, LOW);
+    gpio_matrix_out((gpio_num_t)PIN_DRV_IN1, GPIO_SIG_DETACH, false, false);
+    gpio_matrix_out((gpio_num_t)PIN_DRV_IN2, GPIO_SIG_DETACH, false, false);
+    gpio_set_level((gpio_num_t)PIN_DRV_IN1, 0);
+    gpio_set_level((gpio_num_t)PIN_DRV_IN2, 0);
     digitalWrite(PIN_DRV_NSLEEP, LOW);
+    m_connected = false;
+    m_braking = false;
 }
 
-/* ============================================================
- * isFaultActive()
- * ============================================================ */
 bool EXCC_BoosterHardware::isFaultActive()
 {
     return digitalRead(PIN_DRV_FAULT) == LOW;
 }
 
 /* ============================================================
- * setupAdc() — IPROPI (32/CH4), VRAIL (33/CH5), RailCom HF (36/CH0)
+ * ADC — IPROPI (32/CH4), VRAIL (33/CH5) — inchangé Phase 1
  * ============================================================ */
 void EXCC_BoosterHardware::setupAdc()
 {
     analogReadResolution(12);
     analogSetAttenuation(ADC_11db);
-
     adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_12);
     adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_12);
-    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_12);
 }
 
-/* ============================================================
- * readCurrent_mA() — IPROPI : I = V / (R_IPROPI * A_IPROPI)
- * ============================================================ */
 uint16_t EXCC_BoosterHardware::readCurrent_mA()
 {
     int raw = adc1_get_raw(ADC1_CHANNEL_4);
@@ -150,9 +123,6 @@ uint16_t EXCC_BoosterHardware::readCurrent_mA()
     return (uint16_t)(currentA * 1000.0f);
 }
 
-/* ============================================================
- * readVoltage_mV() — pont diviseur R1/R2
- * ============================================================ */
 uint16_t EXCC_BoosterHardware::readVoltage_mV()
 {
     int raw = adc1_get_raw(ADC1_CHANNEL_5);
@@ -161,11 +131,9 @@ uint16_t EXCC_BoosterHardware::readVoltage_mV()
     return (uint16_t)(vrail * 1000.0f);
 }
 
-/* ============================================================
- * readRailcomSample() — intérim : ADC sur GPIO36
- * (Phase 2 : remplacé par le décodage UART2 RX à 250 kbit/s)
- * ============================================================ */
+/* Obsolète Phase 2 : l'UART2 a remplacé l'ADC HF. Conservé uniquement
+ * pour satisfaire l'interface de la lib — retourne 0. */
 int16_t EXCC_BoosterHardware::readRailcomSample()
 {
-    return (int16_t)(adc1_get_raw(ADC1_CHANNEL_0) - 2048);
+    return 0;
 }
