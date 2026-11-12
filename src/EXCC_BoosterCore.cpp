@@ -7,6 +7,7 @@
 #include "EXCC_CAN_CC.h"
 #include "EXCC_Main.h"
 #include "EXCC_Callbacks.h" // pour g_idCC
+#include "CAN_DCC_RMT-Booster_Types.h"
 #include "driver/twai.h"    // BENCH : état interne du contrôleur CAN
 
 #include "CanMsg.h"
@@ -80,7 +81,9 @@ void EXCC_BoosterCore::taskEntry(void *param)
     uint32_t dernierBenchBloc = 0;
     uint32_t dernierBenchRapport = 0;
     uint32_t bitsEmisPrecedents = 0;
-    uint32_t s_benchSendFails = 0;
+#if EXCC_DEBUG && EXCC_BENCH_RMT_INJECTION
+    uint8_t benchDccBit = 0;
+#endif
 
     for (;;)
     {
@@ -134,13 +137,17 @@ void EXCC_BoosterCore::taskEntry(void *param)
                 min<uint16_t>(tension / 100, 255));
         }
 
-#if EXCC_DEBUG
+#if EXCC_DEBUG && EXCC_BENCH_RMT_INJECTION
         // ------------------------------------------------------------------
-        // BENCH SANS CONVERTISSEUR (loopback CAN actif dans EXCC_CanConfig)
-        // Format lib CAN_DCC_RMT-Booster :
-        //   0x100 : data[0] = bit DCC (0/1), data[1] = phase (0/1)
-        // ⚠️ À SUPPRIMER quand le vrai convertisseur sera sur le bus.
+        // Test ESP32 seul : contourne le CAN et les sécurités du booster.
         // ------------------------------------------------------------------
+        if (now - dernierBenchBloc >= 1)
+        {
+            dernierBenchBloc = now;
+            booster.benchEmitDccBit(benchDccBit);
+            benchDccBit ^= 1U;
+        }
+
         if (now - dernierBenchRapport >= 2000)
         {
             dernierBenchRapport = now;
@@ -152,14 +159,18 @@ void EXCC_BoosterCore::taskEntry(void *param)
             // État brut du contrôleur TWAI (CanUniversal ne l'expose pas)
             twai_status_info_t st = {};
             twai_get_status_info(&st);
+            const BoosterTelemetry &boosterTelemetry = booster.getTelemetry();
 
-            Serial.printf("[BENCH] bus=%s rx=%lu bits=%lu (+%lu/2s) sendFails=%lu | twai state=%u txerr=%lu rxerr=%lu\n",
+            Serial.printf("[BENCH] bus=%s rx=%lu bits=%lu (+%lu/2s) | booster state=%u error=%u V=%u mV I=%u mA | twai state=%u txerr=%lu rxerr=%lu\n",
                           CanBus::bus(0).isValid() ? "OK" : "INVALIDE",
                           (unsigned long)EXCC_CanBooster::rxCount(),
                           (unsigned long)bits,
                           (unsigned long)delta,
-                          (unsigned long)s_benchSendFails,
-                          st.state, // 4=RUNNING, 3=BUS_OFF...
+                          static_cast<unsigned>(boosterTelemetry.state),
+                          static_cast<unsigned>(boosterTelemetry.error),
+                          static_cast<unsigned>(boosterTelemetry.voltage_mV),
+                          static_cast<unsigned>(boosterTelemetry.current_mA),
+                          st.state, // 1=RUNNING, 2=BUS_OFF, 3=RECOVERING
                           (unsigned long)st.tx_error_counter,
                           (unsigned long)st.rx_error_counter);
 

@@ -107,6 +107,14 @@ void EXCC_Booster_WS2812::onCanMessage(uint32_t id, const uint8_t *data, uint8_t
     s_booster.onCanMessage((uint16_t)id, data, len);
 }
 
+#if EXCC_BENCH_RMT_INJECTION
+void EXCC_Booster_WS2812::benchEmitDccBit(uint8_t bit)
+{
+    s_hw.enableOutput();
+    s_hw.applyDcc(&bit, 1);
+}
+#endif
+
 // ---------------------------------------------------------------------------
 //  RailCom hooks — PHASE 2 : UART2 sur RAILCOM_ISO (GPIO36)
 //  arm()    : appelé sur trame 0x101 START (le Core passe la voie en BRAKE)

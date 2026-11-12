@@ -29,6 +29,7 @@
  * ============================================================ */
 #define EXCC_DEBUG true      // Debug série — TODO: repasser à false après validation
 #define EXCC_UART_BAUDRATE 115200 // Vitesse du port série debug (idem monitor_speed)
+#define EXCC_BENCH_RMT_INJECTION 0 // 1 uniquement pour tester le RMT avec l'ESP32 seul
 #define EXCC_DEBOUNCE_MS 5   // Anti-rebond capteur présence
 #define EXCC_MAX_ESSIEUX 200 // Limite sécurité comptage
 

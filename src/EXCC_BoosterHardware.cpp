@@ -60,7 +60,9 @@ void EXCC_BoosterHardware::applyDcc(const uint8_t *data, uint8_t len)
         return;
 
     const uint8_t bit = data[0] ? 1 : 0;
-    m_regen.emit(&bit, 1);
+    if (m_regen.emit(&bit, 1) != 1)
+        return;
+
     digitalWrite(PIN_DRV_NSLEEP, HIGH); // sortie active
     s_bitsEmis++;
 }

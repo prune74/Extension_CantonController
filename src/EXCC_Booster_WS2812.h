@@ -44,6 +44,10 @@ public:
     // Messages CAN destinés au booster (commandes DCC)
     void onCanMessage(uint32_t id, const uint8_t *data, uint8_t len);
 
+#if EXCC_BENCH_RMT_INJECTION
+    void benchEmitDccBit(uint8_t bit);
+#endif
+
     // Hooks RailCom (fenêtre cutout)
     void onCutoutStart();
     void onCutoutEnd();
