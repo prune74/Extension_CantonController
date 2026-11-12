@@ -12,12 +12,19 @@
 // 0x100 = SIG_GPIO_OUT : déconnecte la pin du périphérique (matrice)
 #define GPIO_SIG_DETACH 0x100
 
+uint32_t EXCC_BoosterHardware::s_bitsEmis = 0;
+
 void EXCC_BoosterHardware::begin()
 {
     setupDrv8874();
     setupAdc();
-    // Régénération RMT canal 7 puis routage matrice IN1/IN2
-    m_regen.begin();
+
+    // Régénération RMT canal 7 — LE point à risque de la Phase 2
+    const bool ok = m_regen.begin();
+#if EXCC_DEBUG
+    Serial.printf("[BOOSTER] DccRegen RMT ch7 : %s\n", ok ? "OK" : "ERREUR");
+#endif
+
     connectDcc();
 }
 
@@ -30,7 +37,7 @@ void EXCC_BoosterHardware::setupDrv8874()
     pinMode(PIN_DRV_NSLEEP, OUTPUT);
     digitalWrite(PIN_DRV_NSLEEP, LOW); // COAST d'abord
     delay(5);
-    digitalWrite(PIN_DRV_NSLEEP, HIGH); // lève nSLEEP : PMODE (PWM) latché ici
+    digitalWrite(PIN_DRV_NSLEEP, HIGH); // lève nSLEEP : PMODE (PWM) latché
 }
 
 /* ============================================================
@@ -45,9 +52,7 @@ void EXCC_BoosterHardware::connectDcc()
 }
 
 /* ============================================================
- * applyDcc() — bit DCC du CAN → item RMT (timings matériels exacts)
- * Appelé par le Core à CHAQUE bit : le ring buffer RMT absorbe
- * l'avance, le matériel cadence les demi-bits. Non bloquant.
+ * applyDcc() — bit DCC du CAN → item RMT (timings matériels)
  * ============================================================ */
 void EXCC_BoosterHardware::applyDcc(const uint8_t *data, uint8_t len)
 {
@@ -57,11 +62,11 @@ void EXCC_BoosterHardware::applyDcc(const uint8_t *data, uint8_t len)
     const uint8_t bit = data[0] ? 1 : 0;
     m_regen.emit(&bit, 1);
     digitalWrite(PIN_DRV_NSLEEP, HIGH); // sortie active
+    s_bitsEmis++;
 }
 
 /* ============================================================
  * Cutout : détache les IN du RMT, force 1/1 → BRAKE
- * (fenêtre ~488 µs calée LaBox côté convertisseur)
  * ============================================================ */
 void EXCC_BoosterHardware::enableCutout()
 {
@@ -104,7 +109,7 @@ bool EXCC_BoosterHardware::isFaultActive()
 }
 
 /* ============================================================
- * ADC — IPROPI (32/CH4), VRAIL (33/CH5) — inchangé Phase 1
+ * ADC — IPROPI (32/CH4), VRAIL (33/CH5)
  * ============================================================ */
 void EXCC_BoosterHardware::setupAdc()
 {
@@ -131,8 +136,7 @@ uint16_t EXCC_BoosterHardware::readVoltage_mV()
     return (uint16_t)(vrail * 1000.0f);
 }
 
-/* Obsolète Phase 2 : l'UART2 a remplacé l'ADC HF. Conservé uniquement
- * pour satisfaire l'interface de la lib — retourne 0. */
+/* Obsolète Phase 2 : l'UART2 a remplacé l'ADC HF. */
 int16_t EXCC_BoosterHardware::readRailcomSample()
 {
     return 0;

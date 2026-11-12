@@ -2,10 +2,15 @@
 #include "EXCC_BoosterCore.h"
 #include "EXCC_CanBooster.h"
 #include "EXCC_Booster_WS2812.h"
+#include "EXCC_BoosterHardware.h"
 #include "EXCC_Calibration.h"
 #include "EXCC_CAN_CC.h"
 #include "EXCC_Main.h"
-#include "EXCC_Callbacks.h"   // pour g_idCC
+#include "EXCC_Callbacks.h" // pour g_idCC
+#include "driver/twai.h"    // BENCH : état interne du contrôleur CAN
+
+#include "CanMsg.h"
+#include "CanBus.h"
 
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
@@ -22,18 +27,10 @@ extern uint8_t g_idCC;
 
 /*
  * ============================================================================
- *  PHASE 2 — le timer HF RailCom (10 µs) a été SUPPRIMÉ :
- *  l'échantillonnage ADC a été remplacé par le décodage UART2 250 kbit/s
- *  (EXCC_RailCom, hooks dans EXCC_Booster_WS2812). Zéro CPU pour la
- *  capture RailCom, plus aucune interruption à 100 kHz.
+ *  PHASE 2 — timer HF RailCom supprimé (UART2 prend le relais).
  * ============================================================================
  */
 
-/*
- * ============================================================================
- *  EXCC_BoosterCore::startTask()
- * ============================================================================
- */
 void EXCC_BoosterCore::startTask()
 {
     if (s_boosterTaskHandle != nullptr)
@@ -49,31 +46,24 @@ void EXCC_BoosterCore::startTask()
         APP_CPU_NUM);
 }
 
-/*
- * ============================================================================
- *  EXCC_BoosterCore::setEnabled()
- * ============================================================================
- */
 void EXCC_BoosterCore::setEnabled(bool enabled) noexcept
 {
     s_boosterEnabled = enabled;
     booster.setEnabled(enabled);
 }
 
-/*
- * ============================================================================
- *  EXCC_BoosterCore::taskEntry()
- * ============================================================================
- */
 void EXCC_BoosterCore::taskEntry(void *param)
 {
     (void)param;
 
-    // PHASE 0 — booster.begin() SUPPRIMÉ ici :
-    // le booster est déjà initialisé dans EXCC_Main::begin(), AVANT le
-    // lancement de cette tâche.
-
     EXCC_CanBooster::begin();
+
+#if EXCC_DEBUG
+    // BENCH : loopback logiciel CanUniversal — les trames émises
+    // ressortent côté receive(). (Le loopback MATÉRIEL de TwaiBackend
+    // est inopérant en v3.1.0 : drapeau self jamais posé → v3.1.1.)
+    CanBus::bus(0).enableSoftwareLoopback();
+#endif
 
     EXCC_Calibration::init();
     EXCC_Calibration::start();
@@ -85,6 +75,12 @@ void EXCC_BoosterCore::taskEntry(void *param)
 
     uint32_t lastBoosterSend = 0;
     bool calibEnvoyee = false;
+
+    // --- BENCH (loopback) : cadence des blocs et des rapports ---
+    uint32_t dernierBenchBloc = 0;
+    uint32_t dernierBenchRapport = 0;
+    uint32_t bitsEmisPrecedents = 0;
+    uint32_t s_benchSendFails = 0;
 
     for (;;)
     {
@@ -110,6 +106,7 @@ void EXCC_BoosterCore::taskEntry(void *param)
             calibEnvoyee = false;
 
         uint32_t now = millis();
+
         if (now - lastBoosterSend >= 200)
         {
             lastBoosterSend = now;
@@ -136,6 +133,46 @@ void EXCC_BoosterCore::taskEntry(void *param)
                 min<uint16_t>(courant / 10, 255),
                 min<uint16_t>(tension / 100, 255));
         }
+
+#if EXCC_DEBUG
+        // ------------------------------------------------------------------
+        // BENCH SANS CONVERTISSEUR (loopback CAN actif dans EXCC_CanConfig)
+        // Format lib CAN_DCC_RMT-Booster :
+        //   0x100 : data[0] = bit DCC (0/1), data[1] = phase (0/1)
+        // ⚠️ À SUPPRIMER quand le vrai convertisseur sera sur le bus.
+        // ------------------------------------------------------------------
+        if (now - dernierBenchRapport >= 2000)
+        {
+            dernierBenchRapport = now;
+
+            const uint32_t bits = EXCC_BoosterHardware::bitsEmis();
+            const uint32_t delta = bits - bitsEmisPrecedents;
+            bitsEmisPrecedents = bits;
+
+            // État brut du contrôleur TWAI (CanUniversal ne l'expose pas)
+            twai_status_info_t st = {};
+            twai_get_status_info(&st);
+
+            Serial.printf("[BENCH] bus=%s rx=%lu bits=%lu (+%lu/2s) sendFails=%lu | twai state=%u txerr=%lu rxerr=%lu\n",
+                          CanBus::bus(0).isValid() ? "OK" : "INVALIDE",
+                          (unsigned long)EXCC_CanBooster::rxCount(),
+                          (unsigned long)bits,
+                          (unsigned long)delta,
+                          (unsigned long)s_benchSendFails,
+                          st.state, // 4=RUNNING, 3=BUS_OFF...
+                          (unsigned long)st.tx_error_counter,
+                          (unsigned long)st.rx_error_counter);
+
+            // BENCH : bus-off → guérison manuelle (CanUniversal ne récupère
+            // pas en mode loopback). Le bus repart au prochain send().
+            if (st.state == TWAI_STATE_BUS_OFF)
+            {
+                twai_stop();
+                twai_initiate_recovery();
+                Serial.println("[BENCH] BUS_OFF -> recuperation TWAI lancee");
+            }
+        }
+#endif
 
         vTaskDelayUntil(&lastWakeTime, period);
     }

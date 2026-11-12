@@ -10,11 +10,10 @@
 #include "CAN_DCC_RMT-Booster_Hardware.h"
 
 /* ============================================================
- * EXCC_BoosterHardware — PHASE 2 : vraie régénération RMT
+ * EXCC_BoosterHardware — PHASE 2 : régénération RMT canal 7
  *
  * IN1 (GPIO16) = RMT TX canal 7, IN2 (GPIO17) = même signal
- * INVERSÉ par la matrice GPIO (inv=true). Le DRV8874 (PMODE=1)
- * reçoit un DCC biphasé aux timings exacts 58/100 µs.
+ * INVERSÉ par la matrice GPIO. DRV8874 mode PWM (PMODE=1) :
  *   Cutout   : IN détachés du RMT, forcé 1/1 → BRAKE
  *   Failsafe : IN détachés, forcé 0/0 → COAST (Hi-Z)
  * ============================================================ */
@@ -34,12 +33,17 @@ public:
 
     uint16_t readCurrent_mA() override;
     uint16_t readVoltage_mV() override;
-    int16_t readRailcomSample() override; // obsolète Phase 2 : conservé pour l'interface
+    int16_t readRailcomSample() override; // obsolète Phase 2
+
+    // Sonde bench/diagnostic : bits DCC passés au RMT depuis le boot
+    static uint32_t bitsEmis() { return s_bitsEmis; }
 
 private:
     void setupDrv8874();
     void connectDcc();
     void setupAdc();
+
+    static uint32_t s_bitsEmis;
 
     EXCC_DccRegen m_regen;
     bool m_connected = false;

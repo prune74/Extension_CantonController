@@ -37,6 +37,8 @@ static bool s_cutoutActive = false;
  */
 static uint32_t s_lastCanRxMs = 0;
 
+static uint32_t s_rxCount = 0;
+
 /*
  * ============================================================================
  *  SECTION : Timestamp cutout global
@@ -67,6 +69,7 @@ void EXCC_CanBooster::process()
 
     while (CanBus::bus(0).receive(msg))
     {
+        s_rxCount++;
         s_lastCanRxMs = millis();   // Activité CAN détectée
         handleFrame(msg);
     }
@@ -139,4 +142,10 @@ uint32_t EXCC_CanBooster::lastCanRxMs()
 uint32_t EXCC_CanBooster::lastCutoutMs()
 {
     return s_lastCutoutMs;
+}
+
+
+uint32_t EXCC_CanBooster::rxCount() 
+{ 
+    return s_rxCount; 
 }

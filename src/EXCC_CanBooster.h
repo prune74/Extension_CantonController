@@ -94,6 +94,11 @@ public:
      */
     static uint32_t lastCutoutMs();
 
+    /*
+     * BENCH/DIAG : nombre total de trames CAN reçues depuis le boot.
+     */
+    static uint32_t rxCount();
+
 private:
     /*
      * ------------------------------------------------------------------------

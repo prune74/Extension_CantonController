@@ -17,7 +17,7 @@ bool EXCC_RailCom::begin()
     if (uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, PIN_RAILCOM_ISO,
                      UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE) != ESP_OK)
         return false;
-    return uart_driver_install(UART_NUM_2, 64, 0, 0, nullptr, 0) == ESP_OK;
+    return uart_driver_install(UART_NUM_2, 256, 0, 0, nullptr, 0) == ESP_OK;
 }
 
 void EXCC_RailCom::arm()

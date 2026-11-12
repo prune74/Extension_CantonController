@@ -39,7 +39,7 @@ public:
 
             cfg.quartz    = 0;
 
-            cfg.loopback  = false;
+            cfg.loopback  = true;
             return cfg;
         }
 
