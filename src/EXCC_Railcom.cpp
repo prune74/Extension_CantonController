@@ -1,8 +1,13 @@
 #include "EXCC_RailCom.h"
+#include "EXCC_Config.h"
+#include <Arduino.h>
+#include "esp_err.h"
 #include "driver/uart.h"
 
 bool EXCC_RailCom::begin()
 {
+    ready = false;
+
     const uart_config_t cfg = {
         .baud_rate = 250000,             // NMRA S-9.3.2 : 250 kbit/s
         .data_bits = UART_DATA_8_BITS,
@@ -11,34 +16,87 @@ bool EXCC_RailCom::begin()
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .source_clk = UART_SCLK_APB,
     };
-    if (uart_param_config(UART_NUM_2, &cfg) != ESP_OK)
+    esp_err_t err = uart_param_config(UART_NUM_2, &cfg);
+    if (err != ESP_OK)
+    {
+#if EXCC_DEBUG
+        Serial.printf("[RAILCOM] uart_param_config: %s\n", esp_err_to_name(err));
+#endif
         return false;
+    }
+
     // RX sur RAILCOM_ISO (GPIO36, input-only OK via matrice d'entrées)
-    if (uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, PIN_RAILCOM_ISO,
-                     UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE) != ESP_OK)
+    err = uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, PIN_RAILCOM_ISO,
+                       UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    if (err != ESP_OK)
+    {
+#if EXCC_DEBUG
+        Serial.printf("[RAILCOM] uart_set_pin: %s\n", esp_err_to_name(err));
+#endif
         return false;
-    return uart_driver_install(UART_NUM_2, 256, 0, 0, nullptr, 0) == ESP_OK;
+    }
+
+    err = uart_driver_install(UART_NUM_2, 256, 0, 0, nullptr, 0);
+    if (err != ESP_OK)
+    {
+#if EXCC_DEBUG
+        Serial.printf("[RAILCOM] uart_driver_install: %s\n", esp_err_to_name(err));
+#endif
+        return false;
+    }
+
+    ready = true;
+    return true;
 }
 
 void EXCC_RailCom::arm()
 {
-    uart_flush_input(UART_NUM_2); // purge : on ne garde que la fenêtre à venir
+    if (!ready)
+        return;
+
+    const esp_err_t err = uart_flush_input(UART_NUM_2);
+    if (err != ESP_OK)
+    {
+#if EXCC_DEBUG
+        Serial.printf("[RAILCOM] uart_flush_input: %s\n", esp_err_to_name(err));
+#endif
+    }
 }
 
 uint16_t EXCC_RailCom::collect()
 {
+    if (!ready)
+        return 0;
+
     uint8_t bytes[MAX_BYTES];
-    uint8_t n = 0;
 
     // Les octets sont arrivés PENDANT le cutout (~488 µs) : lecture non
     // bloquante de ce qui est déjà dans le buffer du driver.
     size_t avail = 0;
-    uart_get_buffered_data_len(UART_NUM_2, &avail);
+    esp_err_t err = uart_get_buffered_data_len(UART_NUM_2, &avail);
+    if (err != ESP_OK)
+    {
+#if EXCC_DEBUG
+        Serial.printf("[RAILCOM] uart_get_buffered_data_len: %s\n", esp_err_to_name(err));
+#endif
+        return 0;
+    }
+
     if (avail > MAX_BYTES)
         avail = MAX_BYTES;
-    if (avail > 0)
-        n = uart_read_bytes(UART_NUM_2, bytes, avail, 0);
+    if (avail == 0)
+        return 0;
 
+    const int readCount = uart_read_bytes(UART_NUM_2, bytes, static_cast<uint32_t>(avail), 0);
+    if (readCount < 0)
+    {
+#if EXCC_DEBUG
+        Serial.printf("[RAILCOM] uart_read_bytes: erreur (%d)\n", readCount);
+#endif
+        return 0;
+    }
+
+    const uint8_t n = static_cast<uint8_t>(readCount);
     if (n == 0)
         return 0;
     frames++;

@@ -32,6 +32,7 @@ public:
     uint32_t valid = 0;
 
 private:
+    bool ready = false;
     static constexpr uint8_t MAX_BYTES = 4; // jusqu'à 2 paquets par cutout
     static uint16_t decode(uint8_t ch1, uint8_t ch2);
 };

@@ -52,7 +52,11 @@ void EXCC_Booster_WS2812::begin()
     s_booster.setConfig(s_cfg);
 
     // PHASE 2 : décodeur RailCom UART2 (front-end BAT54 + TLV9151 + TLP2362)
-    s_railcom.begin();
+    const bool railcomReady = s_railcom.begin();
+#if EXCC_DEBUG
+    Serial.printf("[RAILCOM] UART2 GPIO36 250 kbit/s 8E1 : %s\n",
+                  railcomReady ? "OK" : "ERREUR");
+#endif
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +138,12 @@ void EXCC_Booster_WS2812::onCutoutEnd()
     s_booster.onCutoutEnd();    // la lib range son propre résultat (obsolète ici)
 
     if (addr != 0)
+    {
+#if EXCC_DEBUG
+        Serial.printf("[RAILCOM] adresse=%u\n", addr);
+#endif
         EXCC_CAN_CC::envoyerRailcom(g_idCC, 0, addr);
+    }
 }
 
 // PHASE 2 : obsolète (l'ADC HF a disparu) — corps vide, le header
