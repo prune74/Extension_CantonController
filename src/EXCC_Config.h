@@ -91,6 +91,7 @@
 #define EXCC_BOOSTER_PHASE_TOLERANCE 0
 #define EXCC_BOOSTER_ENABLE_GLOBAL_PROTECTION true
 #define EXCC_BOOSTER_ENABLE_GLOBAL_CUTOUT true
+#define EXCC_BOOSTER_CUTOUT_US 454 // Fenetre nominale du booster RMT de reference
 
 /* ============================================================
  *  Mesure courant via DRV8874 (IPROPI)

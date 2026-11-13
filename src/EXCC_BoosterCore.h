@@ -12,6 +12,7 @@ class EXCC_BoosterCore
 public:
     static void startTask();
     static void setEnabled(bool enabled) noexcept;
+    static void notifyCutoutTimer();
 
     // Point d’entrée de la tâche FreeRTOS
     static void taskEntry(void *param);

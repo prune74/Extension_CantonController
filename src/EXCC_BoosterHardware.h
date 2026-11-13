@@ -5,6 +5,7 @@
 #endif
 
 #include <stdint.h>
+#include <stddef.h>
 #include "EXCC_Config.h"
 #include "EXCC_DccRegen.h"
 #include "CAN_DCC_RMT-Booster_Hardware.h"
@@ -23,6 +24,8 @@ public:
     void begin();
 
     void applyDcc(const uint8_t *data, uint8_t len) override;
+    size_t emitDccBits(const uint8_t *bits, size_t count);
+    bool isDccBusy();
     void enableCutout() override;
     void disableCutout() override;
 

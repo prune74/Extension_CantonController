@@ -111,6 +111,22 @@ void EXCC_Booster_WS2812::onCanMessage(uint32_t id, const uint8_t *data, uint8_t
     s_booster.onCanMessage((uint16_t)id, data, len);
 }
 
+size_t EXCC_Booster_WS2812::emitDccBits(const uint8_t *bits, size_t count)
+{
+    const BoosterTelemetry &telemetry = s_booster.getTelemetry();
+    if (!m_enabled || bits == nullptr || count == 0 ||
+        telemetry.error != BoosterError::NONE)
+        return 0;
+
+    s_hw.enableOutput();
+    return s_hw.emitDccBits(bits, count);
+}
+
+bool EXCC_Booster_WS2812::isDccBusy()
+{
+    return s_hw.isDccBusy();
+}
+
 #if EXCC_BENCH_RMT_INJECTION
 void EXCC_Booster_WS2812::benchEmitDccBit(uint8_t bit)
 {
@@ -120,22 +136,27 @@ void EXCC_Booster_WS2812::benchEmitDccBit(uint8_t bit)
 #endif
 
 // ---------------------------------------------------------------------------
-//  RailCom hooks — PHASE 2 : UART2 sur RAILCOM_ISO (GPIO36)
-//  arm()    : appelé sur trame 0x101 START (le Core passe la voie en BRAKE)
-//  collect(): appelé sur trame 0x101 END  → décode CH1/CH2 de la fenêtre
+// RailCom hooks — fenêtre UART2 synchronisée avec les bits précédant le cutout
 // ---------------------------------------------------------------------------
 void EXCC_Booster_WS2812::onCutoutStart()
 {
-    s_railcom.arm();             // purge le RX avant la fenêtre
-    s_booster.onCutoutStart();  // logique interne lib (si utilisée)
+    s_railcom.arm();
+    if (!m_enabled || s_booster.getTelemetry().error != BoosterError::NONE)
+        return;
+
+    s_hw.enableCutout();
 }
 
 void EXCC_Booster_WS2812::onCutoutEnd()
 {
-    // Décode l'adresse reçue pendant la fenêtre (~488 µs)
-    const uint16_t addr = s_railcom.collect();
+    const bool outputHealthy =
+        m_enabled && s_booster.getTelemetry().error == BoosterError::NONE;
+    if (outputHealthy)
+        s_hw.disableCutout();
+    else
+        s_hw.disableOutput();
 
-    s_booster.onCutoutEnd();    // la lib range son propre résultat (obsolète ici)
+    const uint16_t addr = s_railcom.collect();
 
     if (addr != 0)
     {

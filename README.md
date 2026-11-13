@@ -646,6 +646,12 @@ En mode debug (`EXCC_DEBUG true`), les messages suivants apparaissent :
 
 Le dépôt [DCC_CAN_RMT-Booster](https://github.com/prune74/DCC_CAN_RMT-Booster) représente une nouvelle génération de booster DCC avec gestion CAN avancée et utilisation du **RMT (Remote Control)** de l'ESP32 pour la génération précise du signal DCC.
 
+### Flux CAN entrant pris en charge par EXCC
+
+- `0x100` : `data[0]` indique le nombre de bits; les deux nibbles suivants par octet encodent `(bit << 1) | phase`, le premier nibble étant le poids faible. EXCC met les bits en FIFO avant de les envoyer au RMT.
+- `0x101` : les marqueurs START et END du convertisseur peuvent arriver presque consécutivement. EXCC déclenche donc une fenêtre RailCom locale de 454 µs au START au lieu d'utiliser leur espacement CAN.
+- Une trame CAN standard ne transporte que 8 octets : le convertisseur doit limiter `0x100` à 14 bits maximum par trame. Les blocs de 15/16 bits ne sont pas valides avec ce format.
+
 ### 🔍 Comparaison des Architectures
 
 #### Architecture Actuelle (EXCC)

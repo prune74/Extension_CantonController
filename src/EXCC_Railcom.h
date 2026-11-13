@@ -14,18 +14,16 @@
  * → RAILCOM_ISO : signal LOGIQUE 3,3 V isolé (GPIO36).
  * Décodage UART2 250 kbit/s (NMRA S-9.3.2), zéro jigue CPU.
  *
- * EXCC : modèle NON BLOQUANT en deux temps (le cutout est piloté
- * par les trames 0x101 START/END du convertisseur, déjà asynchrones) :
- *   arm()    → début de cutout : purge le RX
- *   collect()→ fin de cutout : lit les octets arrivés pendant la
- *              fenêtre et décode l'adresse (0 = rien)
+ * EXCC : arm() purge le RX au marqueur START. Le marqueur END du
+ * convertisseur étant envoyé presque immédiatement, la fin de fenêtre
+ * est temporisée localement dans EXCC_BoosterCore.
  * ============================================================ */
 class EXCC_RailCom
 {
 public:
     bool begin();
-    void arm();                 // appelé sur 0x101 START (cutout BRAKE)
-    uint16_t collect();         // appelé sur 0x101 END → adresse ou 0
+    void arm();                 // purge le RX au début de la fenêtre
+    uint16_t collect();         // décode les octets reçus (adresse ou 0)
 
     // Statistiques (diagnostic)
     uint32_t frames = 0;

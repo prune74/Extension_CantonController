@@ -23,6 +23,8 @@ size_t EXCC_DccRegen::emit(const uint8_t *bits, size_t n)
 {
     rmt_item32_t items[MAX_EMIT];
     size_t k = 0;
+    if (bits == nullptr || n == 0)
+        return 0;
     if (n > MAX_EMIT)
         n = MAX_EMIT;
 

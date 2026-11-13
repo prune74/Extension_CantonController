@@ -5,6 +5,7 @@
 #endif
 
 #include <stdint.h>
+#include <stddef.h>
 #include "EXCC_Config.h"
 #include "CanMsg.h"
 
@@ -27,22 +28,15 @@
  *      - process() → lit toutes les trames CAN (appelée toutes les 1 ms)
  *      - handleFrame() → analyse chaque trame reçue
  *
- *  Gestion RailCom :
- *      Le cutout RailCom est annoncé par le Master via la trame :
+ *  DCC entrant :
+ *      0x100 contient un bloc compact : data[0] = nombre de bits,
+ *      puis deux nibbles (bit/phase) par octet, premier nibble en bas.
+ *      Les bits sont conservés dans une FIFO jusqu'à acceptation par RMT.
  *
- *          ID = 0x101
- *          data[0] = 1 → début cutout
- *          data[0] = 0 → fin cutout
- *
- *      EXCC_CanBooster doit :
- *          - appeler booster.onCutoutStart()
- *          - appeler booster.onCutoutEnd()
- *          - exposer isCutoutActive() pour le timer HF RailCom
- *
- *  NOTE :
- *      La bibliothèque CanDccBooster gère le cutout matériel,
- *      mais ne déclenche PAS elle-même le décodage RailCom HF.
- *      C’est EXCC_CanBooster qui doit appeler les hooks RailCom.
+ *  RailCom :
+ *      0x101 transporte des marqueurs START/END. Leur espacement CAN
+ *      ne représente pas la durée physique du cutout : EXCC utilise une
+ *      fenêtre temporisée localement.
  */
 
 class EXCC_CanBooster
@@ -75,6 +69,8 @@ public:
      *  uniquement pendant le cutout.
      */
     static bool isCutoutActive();
+    static bool isCutoutPending();
+    static void startPendingCutout();
 
     /*
      * ------------------------------------------------------------------------
@@ -99,15 +95,20 @@ public:
      */
     static uint32_t rxCount();
 
+    // Lecture sans consommation, puis consommation après acceptation RMT.
+    static size_t peekDccBits(uint8_t *bits, size_t capacity);
+    static void consumeDccBits(size_t count);
+    static void discardDccBits();
+
 private:
     /*
      * ------------------------------------------------------------------------
      *  handleFrame()
      * ------------------------------------------------------------------------
      *  Analyse une trame CAN Booster :
-     *      - détecte le cutout (ID 0x101)
-     *      - appelle les hooks RailCom du booster
-     *      - transmet la trame au booster (onCanMessage)
+     *      - dépaquette les blocs DCC (ID 0x100)
+     *      - démarre la fenêtre cutout locale (ID 0x101)
+     *      - transmet les autres trames au booster
      */
     static void handleFrame(const CanMsg &msg);
 };

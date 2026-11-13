@@ -5,6 +5,7 @@
 #endif
 
 #include <stdint.h>
+#include <stddef.h>
 #include "EXCC_Config.h"
 
 class BoosterTelemetry;   // Forward declaration
@@ -43,6 +44,8 @@ public:
 
     // Messages CAN destinés au booster (commandes DCC)
     void onCanMessage(uint32_t id, const uint8_t *data, uint8_t len);
+    size_t emitDccBits(const uint8_t *bits, size_t count);
+    bool isDccBusy();
 
 #if EXCC_BENCH_RMT_INJECTION
     void benchEmitDccBit(uint8_t bit);

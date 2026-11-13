@@ -53,6 +53,12 @@ void EXCC_BoosterCore::setEnabled(bool enabled) noexcept
     booster.setEnabled(enabled);
 }
 
+void EXCC_BoosterCore::notifyCutoutTimer()
+{
+    if (s_boosterTaskHandle != nullptr)
+        xTaskNotifyGive(s_boosterTaskHandle);
+}
+
 void EXCC_BoosterCore::taskEntry(void *param)
 {
     (void)param;
@@ -71,7 +77,6 @@ void EXCC_BoosterCore::taskEntry(void *param)
 
     esp_task_wdt_add(nullptr);
 
-    TickType_t lastWakeTime = xTaskGetTickCount();
     const TickType_t period = pdMS_TO_TICKS(1);
 
     uint32_t lastBoosterSend = 0;
@@ -93,6 +98,26 @@ void EXCC_BoosterCore::taskEntry(void *param)
 
         if (s_boosterEnabled)
             booster.update();
+
+        if (!s_boosterEnabled ||
+            booster.getTelemetry().error != BoosterError::NONE)
+        {
+            EXCC_CanBooster::discardDccBits();
+        }
+        else
+        {
+            uint8_t dccBits[14];
+            const size_t pendingBits =
+                EXCC_CanBooster::peekDccBits(dccBits, sizeof(dccBits));
+            if (pendingBits != 0 &&
+                booster.emitDccBits(dccBits, pendingBits) == pendingBits)
+            {
+                EXCC_CanBooster::consumeDccBits(pendingBits);
+            }
+
+            if (EXCC_CanBooster::isCutoutPending())
+                EXCC_CanBooster::startPendingCutout();
+        }
 
         EXCC_Calibration::process();
 
@@ -185,6 +210,6 @@ void EXCC_BoosterCore::taskEntry(void *param)
         }
 #endif
 
-        vTaskDelayUntil(&lastWakeTime, period);
+        ulTaskNotifyTake(pdTRUE, period);
     }
 }

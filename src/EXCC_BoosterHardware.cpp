@@ -56,15 +56,30 @@ void EXCC_BoosterHardware::connectDcc()
  * ============================================================ */
 void EXCC_BoosterHardware::applyDcc(const uint8_t *data, uint8_t len)
 {
-    if (len == 0)
+    if (data == nullptr || len == 0)
         return;
 
     const uint8_t bit = data[0] ? 1 : 0;
-    if (m_regen.emit(&bit, 1) != 1)
-        return;
+    emitDccBits(&bit, 1);
+}
 
-    digitalWrite(PIN_DRV_NSLEEP, HIGH); // sortie active
-    s_bitsEmis++;
+size_t EXCC_BoosterHardware::emitDccBits(const uint8_t *bits, size_t count)
+{
+    if (bits == nullptr || count == 0)
+        return 0;
+
+    const size_t emitted = m_regen.emit(bits, count);
+    if (emitted == 0)
+        return 0;
+
+    digitalWrite(PIN_DRV_NSLEEP, HIGH);
+    s_bitsEmis += emitted;
+    return emitted;
+}
+
+bool EXCC_BoosterHardware::isDccBusy()
+{
+    return m_regen.busy();
 }
 
 /* ============================================================
