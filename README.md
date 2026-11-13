@@ -642,170 +642,48 @@ En mode debug (`EXCC_DEBUG true`), les messages suivants apparaissent :
 
 ## 🔄 Adaptation au DCC_CAN_RMT-Booster
 
-### 📌 Contexte
+### État d'avancement — 13 novembre 2026
 
-Le dépôt [DCC_CAN_RMT-Booster](https://github.com/prune74/DCC_CAN_RMT-Booster) représente une nouvelle génération de booster DCC avec gestion CAN avancée et utilisation du **RMT (Remote Control)** de l'ESP32 pour la génération précise du signal DCC.
+Version PDF : [télécharger le bilan d'avancement](docs/EXCC_Booster_Avancement.pdf).
 
-### Flux CAN entrant pris en charge par EXCC
+L'intégration conserve les autres fonctions EXCC (signaux, cantons, quadrature,
+compteur d'essieux, servos, switches, LEDs et communication avec le
+CantonController). La compilation PlatformIO complète a réussi. Le matériel
+booster et le convertisseur n'étant pas disponibles pour les essais, les
+résultats électriques et RailCom restent à confirmer sur la carte assemblée.
 
-- `0x100` : `data[0]` indique le nombre de bits; les deux nibbles suivants par octet encodent `(bit << 1) | phase`, le premier nibble étant le poids faible. EXCC met les bits en FIFO avant de les envoyer au RMT.
-- `0x101` : les marqueurs START et END du convertisseur peuvent arriver presque consécutivement. EXCC déclenche donc une fenêtre RailCom locale de 454 µs au START au lieu d'utiliser leur espacement CAN.
-- Une trame CAN standard ne transporte que 8 octets : le convertisseur doit limiter `0x100` à 14 bits maximum par trame. Les blocs de 15/16 bits ne sont pas valides avec ce format.
+| Phase | État | Avancement et limites |
+|---|---|---|
+| 0 — Crash au boot | ✅ Validée | Ordre d'initialisation corrigé; le démarrage propre a été confirmé par les logs série. |
+| 1 — Brochage et bus CAN | ✅ Validée logiciellement | Brochage cible et bus TWAI unique configurés; compilation et démarrage confirmés. |
+| 2 — Modules booster | ✅ Code intégré; matériel à valider | RMT TX canal 7, interface DRV8874, mesure ADC, digipot et UART2 RailCom sont présents. Les valeurs de tension/digipot et les signaux sur la voie ne sont pas calibrés physiquement. |
+| 3 — Front-end RailCom | ⏳ En attente du matériel | UART2 est configuré sur GPIO36 à 250 kbit/s, 8E1. BAT54, TLV9151, TLP2362 et la réception RailCom réelle doivent être vérifiés sur la carte. |
+| 4 — Flux CAN vers DCC | 🟡 Intégration logicielle partielle | `0x100` est validé puis dépaqueté en FIFO avant émission RMT. `0x101` déclenche une fenêtre locale temporisée de 454 µs, car START/END sont transmis presque consécutivement. RailCom valide est remonté au CantonController. Le failsafe à 500 ms et la protection distante décrits dans le cahier des charges restent à compléter/vérifier. |
+| 5 — Validation système | 🟡 Partielle | Build propre réussi et boot déjà observé. Oscilloscope, cutout réel, RailCom avec locomotive, profils HO/N et perte du convertisseur restent à tester avec le matériel. |
 
-### 🔍 Comparaison des Architectures
+#### Format CAN du convertisseur
 
-#### Architecture Actuelle (EXCC)
-```
-┌─────────────────┐
-│  CanDccBooster  │ ← Bibliothèque externe
-│  (prune74)      │
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│ EXCC_CanBooster │ ← Interface CAN
-│ EXCC_Booster    │ ← Gestion booster
-│ EXCC_BoosterCore│ ← Tâche FreeRTOS
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│ DRV8874         │ ← Driver matériel
-└─────────────────┘
-```
+- `0x100` : `data[0]` est le nombre de bits `N`; les deux nibbles par octet
+  encodent `(bit << 1) | phase`, premier nibble dans le poids faible. EXCC
+  utilise le bit DCC et conserve les blocs dans une FIFO avant le RMT.
+- Le convertisseur a été corrigé pour limiter les blocs à **14 bits** :
+  compteur + sept octets de données = DLC 8, limite d'une trame CAN standard.
+  La correction est fusionnée dans `main` du dépôt
+  [DCC_CAN_RMT-Booster](https://github.com/prune74/DCC_CAN_RMT-Booster).
+- `0x101` transporte des marqueurs de cutout, pas sa durée. EXCC termine donc
+  localement sa fenêtre RailCom après 454 µs; le timing réel doit être mesuré
+  sur la carte.
 
-#### Architecture DCC_CAN_RMT-Booster
-```
-┌─────────────────────────────┐
-│  DCC_CAN_RMT-Booster       │
-│  - RMT DCC Generation      │ ← Signal DCC via RMT
-│  - CAN Communication       │
-│  - Current/Tension Sensing │
-│  - RailCom Support         │
-│  - Thermal Protection      │
-└─────────────────────────────┘
-```
+#### Travaux restants
 
-### 🔧 Points d'Adaptation
-
-#### 1. **Remplacement du Booster Logiciel**
-
-**Actuellement** :
-- `CanDccBooster` (bibliothèque externe) gère la génération DCC
-- `EXCC_BoosterHardware` implémente l'interface `CanDccBoosterHardware`
-- Génération DCC via PWM logiciel
-
-**À adapter** :
-- Remplacer par `DCC_CAN_RMT-Booster`
-- Utiliser l'interface RMT pour la génération DCC
-- Conserver la même interface pour la compatibilité
-
-#### 2. **Interface CAN**
-
-Le nouveau booster utilise probablement une interface CAN différente. Il faudra :
-- Adapter `EXCC_CanBooster` pour communiquer avec le nouveau booster
-- Vérifier la compatibilité des opcodes
-- Adapter le format des messages
-
-#### 3. **Gestion RailCom**
-
-**Actuellement** :
-- Cutout RailCom via message CAN (ID 0x101)
-- Échantillonnage HF via `feedRailcomSample()`
-- Décodage dans `EXCC_Railcom`
-
-**À adapter** :
-- Vérifier la compatibilité du cutout
-- Adapter le timing d'échantillonnage
-- Intégrer le décodage RailCom du nouveau booster
-
-#### 4. **Télémétrie**
-
-Les deux boosters devraient avoir des interfaces similaires pour :
-- `readCurrent_mA()` - Lecture courant
-- `readVoltage_mV()` - Lecture tension
-- `isFaultActive()` - Défaut actif
-- `enableOutput()`/`disableOutput()` - Contrôle sortie
-
-#### 5. **Configuration**
-
-Adapter `EXCC_Config.h` pour :
--Nouveaux seuils de protection
--Nouvelles temporisations
--Configuration RMT
-
-### 📝 Étapes de Migration
-
-1. **Analyser l'API DCC_CAN_RMT-Booster**
-   - Lire la documentation
-   - Comprendre les classes principales
-   - Identifier les points d'intégration
-
-2. **Créer une couche d'abstraction**
-   ```cpp
-   class BoosterInterface {
-   public:
-       virtual void begin() = 0;
-       virtual void setDccSignal(const uint8_t* data, uint8_t len) = 0;
-       virtual uint16_t readCurrent_mA() = 0;
-       virtual uint16_t readVoltage_mV() = 0;
-       virtual void enableCutout() = 0;
-       virtual void disableCutout() = 0;
-       // ...
-   };
-   ```
-
-3. **Implémenter l'adaptateur pour DCC_CAN_RMT-Booster**
-   ```cpp
-   class RMT_BoosterAdapter : public BoosterInterface {
-       // Implémentation utilisant DCC_CAN_RMT-Booster
-   };
-   ```
-
-4. **Mettre à jour EXCC_CanBooster**
-   - Adapter la gestion des messages CAN
-   - Intégrer le nouveau booster
-
-5. **Tester et valider**
-   - Vérifier la génération DCC
-   - Tester la détection RailCom
-   - Valider la télémétrie
-
-### 🔗 Intégration Recommandée
-
-```cpp
-// Dans EXCC_Booster_WS2812.cpp
-
-// Ancien code
-#include "CanDccBooster.h"
-CanDccBooster booster;
-
-// Nouveau code
-#include "DCC_CAN_RMT_Booster.h"  // À adapter
-DCC_CAN_RMT_Booster booster;
-
-// ou via interface
-#include "BoosterInterface.h"
-BoosterInterface* booster = new RMT_BoosterAdapter();
-```
-
-### ⚠️ Points d'Attention
-
-1. **Timing DCC** : Le RMT offre une précision accrue, mais il faut vérifier la compatibilité avec les locomotives existantes
-2. **RailCom** : Vérifier que le timing du cutout est compatible
-3. **Consommation mémoire** : Le RMT utilise des ressources matérielles spécifiques
-4. **Compatibilité CAN** : Vérifier que les opcodes sont compatibles
-5. **Gestion des priorités** : Le RMT peut nécessiter des priorités d'interruption spécifiques
-
-### 📊 Mapping des Fonctionnalités
-
-| Fonctionnalité | EXCC Actuel | DCC_CAN_RMT-Booster | Adaptation |
-|----------------|-------------|---------------------|------------|
-| Génération DCC | PWM logiciel | RMT | ✅ Remplacer |
-| Mesure courant | IPROPI | IPROPI | ✅ Compatible |
-| Mesure tension | Pont diviseur | Pont diviseur | ✅ Compatible |
-| RailCom cutout | Message CAN | Message CAN | ✅ Vérifier |
-| RailCom HF | Échantillonnage | Intégré | ✅ Adapter |
-| Protection | Logicielle | Matérielle + Logicielle | ✅ Améliorer |
-| CAN Bus | ACAN | ACAN | ✅ Compatible |
+1. Assembler le front-end RailCom et confirmer le signal UART sur GPIO36.
+2. À l'oscilloscope, vérifier DCC 58/100 µs, inversion IN1/IN2 et cutout BRAKE
+   de 454 µs.
+3. Tester le décodage RailCom avec une locomotive compatible et vérifier le
+   message reçu par le CantonController.
+4. Implémenter et tester le failsafe convertisseur (perte de `0x100` > 500 ms)
+   ainsi que la protection distante si ces exigences restent requises.
+5. Calibrer courant, tension et profils HO/N avec le DRV8874 et le digipot.
 
 ---
 
