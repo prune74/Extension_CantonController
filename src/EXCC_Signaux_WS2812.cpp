@@ -10,8 +10,8 @@ static constexpr uint32_t BLINK_PERIOD_MS = EXCC_WS2812_BLINK_PERIOD_MS;
 /* ============================================================================
  *  1) Constructeur
  * ==========================================================================*/
-EXCC_Signaux_WS2812::EXCC_Signaux_WS2812(CRGB *feux, uint8_t nbFeux,
-                                         CRGB *oeilleton, uint8_t nbOeil,
+EXCC_Signaux_WS2812::EXCC_Signaux_WS2812(WsCrgb *feux, uint8_t nbFeux,
+                                         WsCrgb *oeilleton, uint8_t nbOeil,
                                          ExccSignalLayout layoutInit) noexcept
     : m_feuxStrip(feux),
       m_nbFeux(nbFeux),
@@ -32,9 +32,8 @@ EXCC_Signaux_WS2812::EXCC_Signaux_WS2812(CRGB *feux, uint8_t nbFeux,
       idxRappel30_1(-1), idxRappel30_2(-1),
       idxRappel60_1(-1), idxRappel60_2(-1),
       m_hasOeilleton(false),
-      m_couleurOeilleton(CRGB::White)
+      m_couleurOeilleton(WsCrgb::White())
 {
-    FastLED.setBrightness(EXCC_WS2812_GLOBAL_BRIGHTNESS);
     eteindreTout();
     rebuildMapping();
 }
@@ -45,16 +44,16 @@ EXCC_Signaux_WS2812::EXCC_Signaux_WS2812(CRGB *feux, uint8_t nbFeux,
 void EXCC_Signaux_WS2812::eteindreTout() noexcept
 {
     for (uint8_t i = 0; i < m_nbFeux; i++)
-        m_feuxStrip[i] = CRGB::Black;
+        m_feuxStrip[i] = WsCrgb::Black();
 
     for (uint8_t i = 0; i < m_nbOeil; i++)
-        m_oeilStrip[i] = CRGB::Black;
+        m_oeilStrip[i] = WsCrgb::Black();
 }
 
 /* ============================================================================
  *  3) Allumer/éteindre une LED
  * ==========================================================================*/
-void EXCC_Signaux_WS2812::setLed(int8_t index, bool on, const CRGB &color) noexcept
+void EXCC_Signaux_WS2812::setLed(int8_t index, bool on, const WsCrgb &color) noexcept
 {
     if (index < 0)
         return;
@@ -63,7 +62,7 @@ void EXCC_Signaux_WS2812::setLed(int8_t index, bool on, const CRGB &color) noexc
     if (idx >= m_nbFeux)
         return;
 
-    m_feuxStrip[idx] = on ? color : CRGB::Black;
+    m_feuxStrip[idx] = on ? color : WsCrgb::Black();
 }
 
 /* ============================================================================
@@ -190,31 +189,31 @@ bool EXCC_Signaux_WS2812::setAspect(ExccAspect aspect) noexcept
     switch (aspect)
     {
     case ExccAspect::ASPECT_CARRE:
-        setLed(idxCarre, true, CRGB::Red);
+        setLed(idxCarre, true, WsCrgb::Red());
         if (m_hasOeilleton)
             m_oeilStrip[0] = m_couleurOeilleton;
         break;
 
     case ExccAspect::ASPECT_CARRE_VIOLET:
-        setLed(idxCarre, true, CRGB::Purple);
+        setLed(idxCarre, true, WsCrgb::Purple());
         break;
 
     case ExccAspect::ASPECT_SEMAPHORE:
-        setLed(idxRouge, true, CRGB::Red);
+        setLed(idxRouge, true, WsCrgb::Red());
         if (m_hasOeilleton)
             m_oeilStrip[0] = m_couleurOeilleton;
         break;
 
     case ExccAspect::ASPECT_AVERTISSEMENT:
-        setLed(idxJaune, true, CRGB::Yellow);
+        setLed(idxJaune, true, WsCrgb::Yellow());
         break;
 
     case ExccAspect::ASPECT_VOIE_LIBRE:
-        setLed(idxVoieLibre, true, CRGB::Green);
+        setLed(idxVoieLibre, true, WsCrgb::Green());
         break;
 
     case ExccAspect::ASPECT_MANOEUVRE:
-        setLed(idxVoieLibre, true, CRGB::White);
+        setLed(idxVoieLibre, true, WsCrgb::White());
         break;
 
     case ExccAspect::ASPECT_RALENTISSEMENT_30:
@@ -250,13 +249,13 @@ void EXCC_Signaux_WS2812::appliquerAspectFixe() noexcept
     switch (m_vitesse)
     {
     case ExccVitesse::RALENT_30:
-        setLed(idxRal30_1, true, CRGB::Yellow);
-        setLed(idxRal30_2, true, CRGB::Yellow);
+        setLed(idxRal30_1, true, WsCrgb::Yellow());
+        setLed(idxRal30_2, true, WsCrgb::Yellow());
         break;
 
     case ExccVitesse::RAPPEL_30:
-        setLed(idxRappel30_1, true, CRGB::Yellow);
-        setLed(idxRappel30_2, true, CRGB::Yellow);
+        setLed(idxRappel30_1, true, WsCrgb::Yellow());
+        setLed(idxRappel30_2, true, WsCrgb::Yellow());
         break;
 
     default:
@@ -284,18 +283,18 @@ void EXCC_Signaux_WS2812::appliquerClignotement(uint32_t nowMs) noexcept
     switch (m_vitesse)
     {
     case ExccVitesse::RALENT_60:
-        setLed(idxRal60_1, m_blinkState, CRGB::Yellow);
-        setLed(idxRal60_2, m_blinkState, CRGB::Yellow);
+        setLed(idxRal60_1, m_blinkState, WsCrgb::Yellow());
+        setLed(idxRal60_2, m_blinkState, WsCrgb::Yellow());
         break;
 
     case ExccVitesse::RAPPEL_60:
-        setLed(idxRappel60_1, m_blinkState, CRGB::Yellow);
-        setLed(idxRappel60_2, m_blinkState, CRGB::Yellow);
+        setLed(idxRappel60_1, m_blinkState, WsCrgb::Yellow());
+        setLed(idxRappel60_2, m_blinkState, WsCrgb::Yellow());
         break;
 
     default:
         if (m_typeSNCF == TYPE_A)
-            setLed(idxVoieLibre, m_blinkState, CRGB::Green);
+            setLed(idxVoieLibre, m_blinkState, WsCrgb::Green());
         break;
     }
 }

@@ -513,13 +513,13 @@ board_build.partitions = default.csv
 
 lib_deps =
     https://github.com/prune74/CAN_DCC-Booster.git
+    prune74/Ws2812Universal @ 1.1.0
     prune74/CanUniversal
     adafruit/Adafruit PWM Servo Driver Library
     adafruit/Adafruit MCP23017 Arduino Library
     adafruit/Adafruit BusIO
     pierremolinaro/ACAN_ESP32
     pierremolinaro/ACAN2515
-    fastled/FastLED @ ^3.6.0
 ```
 
 ---
@@ -646,6 +646,10 @@ En mode debug (`EXCC_DEBUG true`), les messages suivants apparaissent :
 
 Version PDF : [télécharger le bilan d'avancement](docs/EXCC_Booster_Avancement.pdf).
 
+Les sept strips WS2812 sont migrés de FastLED vers `Ws2812Universal @ 1.1.0` :
+buffers `WsCrgb`, provider de configuration explicite et canaux RMT 0 à 6.
+FastLED n'est plus une dépendance du firmware.
+
 L'intégration conserve les autres fonctions EXCC (signaux, cantons, quadrature,
 compteur d'essieux, servos, switches, LEDs et communication avec le
 CantonController). La compilation PlatformIO complète a réussi. Le matériel
@@ -692,6 +696,7 @@ résultats électriques et RailCom restent à confirmer sur la carte assemblée.
 ### Version 2026 (Chemin de Fer du Chablais (CFC))
 
 - **Migration vers WS2812** : Tous les signaux et LED utilisent maintenant WS2812/WS2815
+- **WS2812** : Remplacement de FastLED par `prune74/Ws2812Universal @ 1.1.0`
 - **Refactorisation du protocole** : Organisation moderne avec enum class par liaison CAN
 - **Séparation des responsabilités** : Occupation centralisée dans EXCC_Occupation
 - **Amélioration RailCom** : Gestion du cutout et décodage HF
@@ -736,7 +741,7 @@ Ce projet est sous licence **MIT**. Voir le fichier [LICENSE](LICENSE) pour plus
 
 - [prune74](https://github.com/prune74) pour les bibliothèques CAN_DCC-Booster et CanUniversal
 - [pierremolinaro](https://github.com/pierremolinaro) pour ACAN_ESP32 et ACAN2515
-- [FastLED](https://github.com/FastLED) pour la gestion des LED WS2812
+- [Ws2812Universal](https://github.com/prune74/Ws2812Universal) pour les bus WS2812 RMT
 - [Adafruit](https://github.com/adafruit) pour les bibliothèques PCA9685 et MCP23017
 
 ---
@@ -747,5 +752,5 @@ Pour toute question ou problème, ouvrez une **Issue** sur GitHub.
 
 ---
 
-*Documentation générée le 11 novembre 2025*
+*Documentation générée le 13 novembre 2026*
 *Version : Chemin de Fer du Chablais (CFC)*

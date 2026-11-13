@@ -4,7 +4,7 @@
 #error "Ce module doit être compilé pour ESP32 uniquement."
 #endif
 
-#include <FastLED.h>
+#include "WsCrgb.h"
 #include <stdint.h>
 #include "EXCC_Config.h"
 
@@ -18,7 +18,7 @@
 class EXCC_Canton_WS2812
 {
 public:
-    EXCC_Canton_WS2812(CRGB *led) : m_led(led) {}
+    EXCC_Canton_WS2812(WsCrgb *led) : m_led(led) {}
 
     void begin() noexcept;
     void update() noexcept;
@@ -28,7 +28,7 @@ public:
     void setErreur(bool erreur) noexcept;
 
 private:
-    CRGB *m_led;
+    WsCrgb *m_led;
 
     // Animation de démarrage
     uint8_t animStep = 0;

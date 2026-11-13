@@ -17,13 +17,13 @@
 extern EXCC_Booster_WS2812 booster;
 
 // Pointeurs vers les LEDs du strip
-CRGB *EXCC_StatusLed::LED_CAN = nullptr;
-CRGB *EXCC_StatusLed::LED_RAILCOM = nullptr;
-CRGB *EXCC_StatusLed::LED_TELEM = nullptr;
-CRGB *EXCC_StatusLed::LED_STATE = nullptr;
-CRGB *EXCC_StatusLed::LED_SWITCHES = nullptr;
+WsCrgb *EXCC_StatusLed::LED_CAN = nullptr;
+WsCrgb *EXCC_StatusLed::LED_RAILCOM = nullptr;
+WsCrgb *EXCC_StatusLed::LED_TELEM = nullptr;
+WsCrgb *EXCC_StatusLed::LED_STATE = nullptr;
+WsCrgb *EXCC_StatusLed::LED_SWITCHES = nullptr;
 
-void EXCC_StatusLed::begin(CRGB *strip)
+void EXCC_StatusLed::begin(WsCrgb *strip)
 {
     LED_CAN = &strip[4];
     LED_RAILCOM = &strip[2];
@@ -53,11 +53,11 @@ void EXCC_StatusLed::updateLedCan()
     uint32_t last = EXCC_CanBooster::lastCanRxMs();
 
     if (now - last < 200)
-        *LED_CAN = CRGB::Green;
+        *LED_CAN = WsCrgb::Green();
     else if (now - last < 1000)
-        *LED_CAN = CRGB::Orange;
+        *LED_CAN = WsCrgb::Orange();
     else
-        *LED_CAN = CRGB::Red;
+        *LED_CAN = WsCrgb::Red();
 }
 
 /* ============================================================
@@ -77,23 +77,23 @@ void EXCC_StatusLed::updateLedRailcom()
 
     if (t.railcomAddress != BoosterConstants::RAILCOM_NO_ADDRESS)
     {
-        *LED_RAILCOM = (millis() & 100) ? CRGB(150, 0, 255) : CRGB::Black;
+        *LED_RAILCOM = (millis() & 100) ? WsCrgb(150, 0, 255) : WsCrgb::Black();
         return;
     }
 
     if (cutoutActive)
     {
-        *LED_RAILCOM = CRGB::White;
+        *LED_RAILCOM = WsCrgb::White();
         return;
     }
 
     if (cutoutOk)
     {
-        *LED_RAILCOM = CRGB(0, 0, 20);
+        *LED_RAILCOM = WsCrgb(0, 0, 20);
         return;
     }
 
-    *LED_RAILCOM = CRGB::Red;
+    *LED_RAILCOM = WsCrgb::Red();
 }
 
 /* ============================================================
@@ -108,23 +108,23 @@ void EXCC_StatusLed::updateLedTelemetry()
 
     if (t.error == BoosterError::HARDWARE_FAULT)
     {
-        *LED_TELEM = CRGB::Red;
+        *LED_TELEM = WsCrgb::Red();
         return;
     }
 
     if (t.voltage_mV < EXCC_BOOSTER_MIN_TENSION_mV)
     {
-        *LED_TELEM = CRGB::Blue;
+        *LED_TELEM = WsCrgb::Blue();
         return;
     }
 
     if (t.current_mA > (EXCC_BOOSTER_MAX_COURANT_mA * 8) / 10)
     {
-        *LED_TELEM = CRGB::Orange;
+        *LED_TELEM = WsCrgb::Orange();
         return;
     }
 
-    *LED_TELEM = CRGB::Green;
+    *LED_TELEM = WsCrgb::Green();
 }
 
 /* ============================================================
@@ -153,30 +153,30 @@ void EXCC_StatusLed::updateLedState()
     switch (etat)
     {
     case BOOSTER_OFF:
-        *LED_STATE = CRGB::Red;
+        *LED_STATE = WsCrgb::Red();
         break;
 
     case BOOSTER_OK:
-        *LED_STATE = CRGB::Green;
+        *LED_STATE = WsCrgb::Green();
         break;
 
     case BOOSTER_COURT_CIRCUIT:
-        *LED_STATE = (millis() & 200) ? CRGB::Red : CRGB::Black;
+        *LED_STATE = (millis() & 200) ? WsCrgb::Red() : WsCrgb::Black();
         break;
 
     case BOOSTER_SOUS_TENSION:
-        *LED_STATE = CRGB::Blue;
+        *LED_STATE = WsCrgb::Blue();
         break;
 
     case BOOSTER_SURCHAUFFE:
     {
-        uint8_t p = sin8(millis() >> 3);
-        *LED_STATE = CRGB(p, 0, p);
+        uint8_t p = ws_sin8(millis() >> 3);
+        *LED_STATE = WsCrgb(p, 0, p);
         break;
     }
 
     case BOOSTER_ERREUR:
-        *LED_STATE = (millis() & 300) ? CRGB::Red : CRGB::Purple;
+        *LED_STATE = (millis() & 300) ? WsCrgb::Red() : WsCrgb::Purple();
         break;
     }
 }
@@ -202,7 +202,7 @@ void EXCC_StatusLed::updateLedSwitches()
     // OK
     if (worst == static_cast<uint8_t>(ExccCode::ETAT_OK) && !moving)
     {
-        *LED_SWITCHES = CRGB::Green;
+        *LED_SWITCHES = WsCrgb::Green();
         flashCount = 0;
         flashesToDo = 0;
         return;
@@ -211,7 +211,7 @@ void EXCC_StatusLed::updateLedSwitches()
     // Mouvement
     if (worst == static_cast<uint8_t>(ExccCode::ETAT_OK) && moving)
     {
-        *LED_SWITCHES = CRGB::Orange;
+        *LED_SWITCHES = WsCrgb::Orange();
         flashCount = 0;
         flashesToDo = 0;
         return;
@@ -231,13 +231,13 @@ void EXCC_StatusLed::updateLedSwitches()
     {
         if (!ledOn && now - timer >= FLASH_OFF_MS)
         {
-            *LED_SWITCHES = CRGB::Red;
+            *LED_SWITCHES = WsCrgb::Red();
             ledOn = true;
             timer = now;
         }
         else if (ledOn && now - timer >= FLASH_ON_MS)
         {
-            *LED_SWITCHES = CRGB::Black;
+            *LED_SWITCHES = WsCrgb::Black();
             ledOn = false;
             timer = now;
             flashCount++;
@@ -253,7 +253,7 @@ void EXCC_StatusLed::updateLedSwitches()
         }
         else
         {
-            *LED_SWITCHES = CRGB::Black;
+            *LED_SWITCHES = WsCrgb::Black();
         }
     }
 }

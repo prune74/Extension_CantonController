@@ -30,7 +30,7 @@ static const gpio_num_t PIN_QUAD_AH_B = GPIO_NUM_35; // entrée pure
 /* ============================================================
    WS2812 — Signaux SNCF (H / AH)
    ------------------------------------------------------------
-   7 strips au total → RMT canaux 0..6 (FastLED).
+   7 strips au total → RMT canaux 0..6 (Ws2812Universal).
    ============================================================ */
 static const gpio_num_t PIN_WS2812_H = GPIO_NUM_18;      // Feux H
 static const gpio_num_t PIN_WS2812_H_OEIL = GPIO_NUM_19; // Œilleton H
@@ -82,7 +82,7 @@ static const gpio_num_t PIN_RAILCOM_ISO = GPIO_NUM_36; // UART2 RX
 /* ============================================================
    RMT — allocation des canaux (ESP32 : 8 canaux / 8 blocs mémoire)
    ------------------------------------------------------------
-   Canaux 0..6 : FastLED (7 strips WS2812)
+   Canaux 0..6 : Ws2812Universal (7 strips WS2812)
    Canal 7     : DCC TX — ⚠️ mem_block_num = 1 OBLIGATOIRE
                 (dernier bloc mémoire de l'ESP32 ; mem_block_num = 2
                 échouerait, contrairement au dépôt DRV8874 canal 5).

@@ -44,7 +44,7 @@ void EXCC_Canton_WS2812::begin() noexcept
     animEnCours = true;
 
     if (m_led)
-        *m_led = CRGB::Black;
+        *m_led = WsCrgb::Black();
 }
 
 void EXCC_Canton_WS2812::update() noexcept
@@ -62,12 +62,12 @@ void EXCC_Canton_WS2812::update() noexcept
 
             switch (animStep)
             {
-            case 0: *m_led = CRGB::Red;    break; // OCCUPÉ
-            case 1: *m_led = CRGB::Green;  break; // LIBRE
-            case 2: *m_led = CRGB::Orange; break; // MOUVEMENT
-            case 3: *m_led = CRGB::Red;    break; // ERREUR
+            case 0: *m_led = WsCrgb::Red();    break; // OCCUPÉ
+            case 1: *m_led = WsCrgb::Green();  break; // LIBRE
+            case 2: *m_led = WsCrgb::Orange(); break; // MOUVEMENT
+            case 3: *m_led = WsCrgb::Red();    break; // ERREUR
             case 4:
-                *m_led = CRGB::Green;      // État initial = LIBRE
+                *m_led = WsCrgb::Green();      // État initial = LIBRE
                 animEnCours = false;
                 break;
             }
@@ -92,9 +92,9 @@ void EXCC_Canton_WS2812::update() noexcept
     if (erreurActive)
     {
         if ((now / 300) % 2)
-            *m_led = CRGB::Red;
+            *m_led = WsCrgb::Red();
         else
-            *m_led = CRGB::Black;
+            *m_led = WsCrgb::Black();
     }
 }
 
@@ -103,7 +103,7 @@ void EXCC_Canton_WS2812::setOccupation(bool occupe) noexcept
     if (animEnCours || erreurActive || mouvementActif)
         return;
 
-    *m_led = occupe ? CRGB::Red : CRGB::Green;
+    *m_led = occupe ? WsCrgb::Red() : WsCrgb::Green();
 }
 
 void EXCC_Canton_WS2812::pulseMouvement() noexcept
@@ -113,7 +113,7 @@ void EXCC_Canton_WS2812::pulseMouvement() noexcept
 
     mouvementActif = true;
     mouvementTimer = millis();
-    *m_led = CRGB::Orange;
+    *m_led = WsCrgb::Orange();
 }
 
 void EXCC_Canton_WS2812::setErreur(bool erreur) noexcept
@@ -124,7 +124,7 @@ void EXCC_Canton_WS2812::setErreur(bool erreur) noexcept
     erreurActive = erreur;
 
     if (erreur)
-        *m_led = CRGB::Red;
+        *m_led = WsCrgb::Red();
     else
-        *m_led = CRGB::Green;
+        *m_led = WsCrgb::Green();
 }

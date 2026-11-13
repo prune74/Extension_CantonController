@@ -1,5 +1,5 @@
 #include "EXCC_LedDirection_WS2812.h"
-#include <FastLED.h>
+#include "Ws2812All.h"
 
 // ---------------------------------------------------------------------------
 // Protection plateforme : ce module nécessite l'ESP32
@@ -8,7 +8,7 @@
 #error "Ce module doit être compilé pour ESP32 uniquement."
 #endif
 
-EXCC_LedDirection_WS2812::EXCC_LedDirection_WS2812(CRGB *ledArray,
+EXCC_LedDirection_WS2812::EXCC_LedDirection_WS2812(WsCrgb *ledArray,
                                                    uint8_t idx0,
                                                    uint8_t idx1,
                                                    uint8_t idx2,
@@ -32,9 +32,9 @@ EXCC_LedDirection_WS2812::EXCC_LedDirection_WS2812(CRGB *ledArray,
 
     // LEDs OFF au démarrage
     for (uint8_t i = 0; i < 4; i++)
-        leds[idx[i]] = CRGB::Black;
+        leds[idx[i]] = WsCrgb::Black();
 
-    FastLED.show();
+    Ws2812All::showAll();
 }
 
 bool EXCC_LedDirection_WS2812::setDirection(uint8_t direction) noexcept
@@ -56,16 +56,16 @@ bool EXCC_LedDirection_WS2812::setDirection(uint8_t direction) noexcept
         if (on)
         {
             // Intensité 0–255 → luminosité WS2812
-            leds[idx[i]] = CRGB(intensites[i], intensites[i], intensites[i]);
+            leds[idx[i]] = WsCrgb(intensites[i], intensites[i], intensites[i]);
         }
         else
         {
-            leds[idx[i]] = CRGB::Black;
+            leds[idx[i]] = WsCrgb::Black();
         }
     }
 
     if (changed)
-        FastLED.show();
+        Ws2812All::showAll();
 
     return changed;
 }
@@ -79,7 +79,7 @@ void EXCC_LedDirection_WS2812::setIntensity(uint8_t index, uint8_t intensite) no
 
     if (etats[index])
     {
-        leds[idx[index]] = CRGB(intensite, intensite, intensite);
-        FastLED.show();
+        leds[idx[index]] = WsCrgb(intensite, intensite, intensite);
+        Ws2812All::showAll();
     }
 }

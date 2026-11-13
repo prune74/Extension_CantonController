@@ -31,7 +31,7 @@
 #include "EXCC_Canton_WS2812.h"
 #include "EXCC_Switches.h"
 
-#include <FastLED.h>
+#include "Ws2812All.h"
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------
@@ -96,5 +96,5 @@ void EXCC_Runtime::update() noexcept
    /* --------------------------------------------------------
       Application WS2812
       -------------------------------------------------------- */
-   FastLED.show();
+   Ws2812All::showAll();
 }

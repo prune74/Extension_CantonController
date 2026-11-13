@@ -19,7 +19,7 @@
  *   bit '0' : 2 × 100 µs → 4000 ticks
  *
  * ⚠️ EXCC : canal 7 avec mem_block_num = 1 OBLIGATOIRE (dernier
- * bloc mémoire de l'ESP32 ; FastLED occupe les canaux 0..6).
+ * bloc mémoire de l'ESP32 ; Ws2812Universal occupe les canaux 0..6).
  * ============================================================ */
 class EXCC_DccRegen
 {

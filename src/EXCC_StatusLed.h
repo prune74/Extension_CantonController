@@ -4,7 +4,7 @@
 #error "Ce module doit être compilé pour ESP32 uniquement."
 #endif
 
-#include <FastLED.h>
+#include "WsCrgb.h"
 
 /*
  * ============================================================
@@ -29,7 +29,7 @@ class EXCC_StatusLed
 {
 public:
     // Initialise les pointeurs vers les LEDs du strip
-    static void begin(CRGB *strip);
+    static void begin(WsCrgb *strip);
 
     // Mise à jour de toutes les LEDs
     static void update();
@@ -43,9 +43,9 @@ private:
     static void updateLedSwitches();
 
     // Pointeurs vers les LEDs du strip
-    static CRGB *LED_CAN;
-    static CRGB *LED_RAILCOM;
-    static CRGB *LED_TELEM;
-    static CRGB *LED_STATE;
-    static CRGB *LED_SWITCHES;
+    static WsCrgb *LED_CAN;
+    static WsCrgb *LED_RAILCOM;
+    static WsCrgb *LED_TELEM;
+    static WsCrgb *LED_STATE;
+    static WsCrgb *LED_SWITCHES;
 };

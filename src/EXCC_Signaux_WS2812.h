@@ -5,7 +5,7 @@
 #endif
 
 #include <Arduino.h>
-#include <FastLED.h>
+#include "WsCrgb.h"
 #include "Protocol.h"
 
 // Layout physique éventuel (orientation, inversion…)
@@ -28,8 +28,8 @@ enum class ExccVitesse : uint8_t
 class EXCC_Signaux_WS2812
 {
 public:
-    EXCC_Signaux_WS2812(CRGB *feux, uint8_t nbFeux,
-                        CRGB *oeilleton, uint8_t nbOeil,
+    EXCC_Signaux_WS2812(WsCrgb *feux, uint8_t nbFeux,
+                        WsCrgb *oeilleton, uint8_t nbOeil,
                         ExccSignalLayout layoutInit) noexcept;
 
     // Commandes principales
@@ -50,10 +50,10 @@ private:
     // ---------------------------------------------------------------------
     // Données LED
     // ---------------------------------------------------------------------
-    CRGB *m_feuxStrip;
+    WsCrgb *m_feuxStrip;
     uint8_t m_nbFeux;
 
-    CRGB *m_oeilStrip;
+    WsCrgb *m_oeilStrip;
     uint8_t m_nbOeil;
 
     // ---------------------------------------------------------------------
@@ -91,13 +91,13 @@ private:
     int8_t idxRappel60_2;
 
     bool m_hasOeilleton;
-    CRGB m_couleurOeilleton;
+    WsCrgb m_couleurOeilleton;
 
     // ---------------------------------------------------------------------
     // Méthodes internes
     // ---------------------------------------------------------------------
     void eteindreTout() noexcept;
-    void setLed(int8_t index, bool on, const CRGB &color) noexcept;
+    void setLed(int8_t index, bool on, const WsCrgb &color) noexcept;
 
     void rebuildMapping() noexcept;
     void appliquerAspectFixe() noexcept;

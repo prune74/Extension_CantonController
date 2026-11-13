@@ -46,7 +46,7 @@
  *  Paramètres WS2812 — Signaux SNCF
  * ------------------------------------------------------------
  *  - EXCC_WS2812_GLOBAL_BRIGHTNESS :
- *        luminosité globale (0–255) appliquée par FastLED
+ *        luminosité globale (0–255) appliquée par Ws2812Universal
  *
  *  - EXCC_WS2812_BLINK_PERIOD_MS :
  *        période de clignotement (ralent 60 / rappel 60 / défaut)

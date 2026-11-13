@@ -27,7 +27,7 @@
 #include "Protocol.h"
 
 #include <Adafruit_PWMServoDriver.h>
-#include <FastLED.h>
+#include <Ws2812Universal.h>
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------
@@ -42,18 +42,18 @@
 // ============================================================
 
 // --- Mât H ---
-CRGB stripH_feux[9];
-CRGB stripH_oeil[1];
+WsCrgb stripH_feux[9];
+WsCrgb stripH_oeil[1];
 
 // --- Mât AH ---
-CRGB stripAH_feux[9];
-CRGB stripAH_oeil[1];
+WsCrgb stripAH_feux[9];
+WsCrgb stripAH_oeil[1];
 
 // --- Direction H ---
-CRGB stripDIR_H[4];
+WsCrgb stripDIR_H[4];
 
 // --- Direction AH ---
-CRGB stripDIR_AH[4];
+WsCrgb stripDIR_AH[4];
 
 // --- Status ---
 // Strip 6 LEDs :
@@ -66,7 +66,44 @@ CRGB stripDIR_AH[4];
 //
 // PHASE 0 — Correction : 6 LEDs (l'ancien [5] débordait avec addLeds(..., 6)
 // et LED_SWITCHES = &strip[5] : corruption mémoire adjacente).
-CRGB g_wsStrip[6];
+WsCrgb g_wsStrip[6];
+
+static_assert(sizeof(WsCrgb) == 3, "WsCrgb must be RGB888");
+
+class EXCC_Ws2812Config final : public Ws2812ConfigProvider
+{
+public:
+    EXCC_Ws2812Config()
+        : m_buses{
+              {true, PIN_WS2812_H, 9, RMT_CHANNEL_0, EXCC_WS2812_GLOBAL_BRIGHTNESS,
+               reinterpret_cast<uint8_t *>(stripH_feux)},
+              {true, PIN_WS2812_H_OEIL, 1, RMT_CHANNEL_1, EXCC_WS2812_GLOBAL_BRIGHTNESS,
+               reinterpret_cast<uint8_t *>(stripH_oeil)},
+              {true, PIN_WS2812_AH, 9, RMT_CHANNEL_2, EXCC_WS2812_GLOBAL_BRIGHTNESS,
+               reinterpret_cast<uint8_t *>(stripAH_feux)},
+              {true, PIN_WS2812_AH_OEIL, 1, RMT_CHANNEL_3, EXCC_WS2812_GLOBAL_BRIGHTNESS,
+               reinterpret_cast<uint8_t *>(stripAH_oeil)},
+              {true, PIN_WS2812_DIR_H, 4, RMT_CHANNEL_4, EXCC_WS2812_GLOBAL_BRIGHTNESS,
+               reinterpret_cast<uint8_t *>(stripDIR_H)},
+              {true, PIN_WS2812_DIR_AH, 4, RMT_CHANNEL_5, EXCC_WS2812_GLOBAL_BRIGHTNESS,
+               reinterpret_cast<uint8_t *>(stripDIR_AH)},
+              {true, PIN_WS2812_STATUS, 6, RMT_CHANNEL_6, EXCC_WS2812_GLOBAL_BRIGHTNESS,
+               reinterpret_cast<uint8_t *>(g_wsStrip)}}
+    {
+    }
+
+    uint8_t busCount() const override { return 7; }
+
+    const Ws2812BusConfig &busConfig(uint8_t index) const override
+    {
+        return m_buses[index < 7 ? index : 0];
+    }
+
+private:
+    Ws2812BusConfig m_buses[7];
+};
+
+static EXCC_Ws2812Config s_ws2812Config;
 
 // ============================================================
 // PCA9685 global (servos uniquement)
@@ -110,31 +147,15 @@ void EXCC_Main::begin() noexcept
     EXCC_System::init();
 
     // ------------------------------------------------------------
-    // 2) WS2812 — 7 chaînes indépendantes
-    //    (RMT canaux 0..6 ; le canal 7 reste libre pour le futur DCC)
+    // 2) WS2812 — 7 bus RMT indépendants sur les canaux 0..6.
     // ------------------------------------------------------------
-
-    // Mât H
-    FastLED.addLeds<WS2812B, PIN_WS2812_H, GRB>(stripH_feux, 9);
-    FastLED.addLeds<WS2812B, PIN_WS2812_H_OEIL, GRB>(stripH_oeil, 1);
-
-    // Mât AH
-    FastLED.addLeds<WS2812B, PIN_WS2812_AH, GRB>(stripAH_feux, 9);
-    FastLED.addLeds<WS2812B, PIN_WS2812_AH_OEIL, GRB>(stripAH_oeil, 1);
-
-    // Direction H
-    FastLED.addLeds<WS2812B, PIN_WS2812_DIR_H, GRB>(stripDIR_H, 4);
-
-    // Direction AH
-    FastLED.addLeds<WS2812B, PIN_WS2812_DIR_AH, GRB>(stripDIR_AH, 4);
-
-    // Status (6 LEDs) — PHASE 0 : 6, cohérent avec CRGB g_wsStrip[6]
-    FastLED.addLeds<WS2812B, PIN_WS2812_STATUS, GRB>(g_wsStrip, 6);
-
-    FastLED.setBrightness(EXCC_WS2812_GLOBAL_BRIGHTNESS);
-
-    // Efface toutes les LED au démarrage
-    FastLED.clear(true);
+    Ws2812Init::begin(s_ws2812Config);
+    Ws2812All::setBrightnessAll(EXCC_WS2812_GLOBAL_BRIGHTNESS);
+    for (uint8_t i = 0; i < s_ws2812Config.busCount(); ++i)
+    {
+        if (Ws2812Bus::bus(i).isValid())
+            Ws2812Bus::bus(i).clear();
+    }
 
     // ------------------------------------------------------------
     // 3) Modules — chaque begin() exactement UNE fois
@@ -157,9 +178,8 @@ void EXCC_Main::begin() noexcept
     directionH_WS.setDirection(0);
     directionAH_WS.setDirection(0);
 
-    // Premier rendu — APRÈS les addLeds (l'ancien ordre affichait
-    // avant l'existence des contrôleurs)
-    FastLED.show();
+    // Premier rendu après initialisation des bus et des états initiaux.
+    Ws2812All::showAll();
 
     // Quadrature H / AH
     quadH.begin(PIN_QUAD_H_A, PIN_QUAD_H_B);
