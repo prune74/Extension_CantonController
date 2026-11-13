@@ -12,7 +12,7 @@ class EXCC_Signaux_WS2812;
 class EXCC_LedDirection_WS2812;
 class EXCC_Canton_WS2812;
 class EXCC_Quadrature;
-class EXCC_Booster_WS2812;
+class EXCC_BoosterUart;
 
 /*
  * ============================================================
@@ -25,7 +25,7 @@ class EXCC_Booster_WS2812;
  *   - Canton (WS2812)
  *   - Quadrature H / AH
  *   - Compteur essieux
- *   - Booster (DCC + RailCom HF)
+ *   - Supervision du Booster externe par UART
  *
  * Le PCA9685 reste utilisé uniquement pour :
  *   - Servos
@@ -63,5 +63,5 @@ extern EXCC_Quadrature quadAH;
 // Compteur essieux
 // (pas besoin d’extern : tout est statique dans EXCC_Compteur)
 
-// Booster (DCC + RailCom HF)
-extern EXCC_Booster_WS2812 booster;
+// Supervision du Booster externe
+extern EXCC_BoosterUart boosterUart;

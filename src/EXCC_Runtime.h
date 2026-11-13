@@ -6,10 +6,10 @@
 
 /*
  * ============================================================================
- *  EXCC_Runtime — Version WS2812 (Chemin de Fer du Chablais (CFC))
+ *  EXCC_Runtime (Chemin de Fer du Chablais (CFC))
  * ----------------------------------------------------------------------------
  *  Rôle :
- *    Boucle d’exécution principale EXCC (hors Booster).
+ *    Boucle d’exécution principale EXCC et passerelles CAN/UART.
  *
  *    Mise à jour temps réel :
  *      • Signaux SNCF WS2812 (H et AH)
@@ -17,7 +17,7 @@
  *      • Aiguilles (anti‑blocage)
  *
  *  Notes :
- *    - Le Booster tourne dans sa propre tâche FreeRTOS.
+ *    - Le Booster externe est supervisé par UART.
  *    - Les feux directionnels WS2812 n’ont aucune logique interne :
  *         → pas de clignotement
  *         → pas d’animation
@@ -29,6 +29,6 @@
 
 namespace EXCC_Runtime
 {
-    // Boucle principale EXCC (hors Booster)
+    // Boucle principale EXCC et passerelles CAN/UART
     void update() noexcept;
 }

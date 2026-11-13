@@ -4,10 +4,14 @@
 #include "CanBus.h"
 #include "CanMsg.h"
 #include "CanID.h"
+#include "EXCC_CanCommands.h"
 
 static void sendEXCC(uint8_t prio, uint16_t cmd, uint8_t resp,
                      uint16_t idCanton, const uint8_t *data, uint8_t len)
 {
+    if (!EXCC_CanCommands::hasReceivedFrame())
+        return;
+
     uint32_t id29 = CanID::make29(prio, cmd, resp, idCanton);
 
     CanMsg msg(id29, {});
@@ -16,7 +20,7 @@ static void sendEXCC(uint8_t prio, uint16_t cmd, uint8_t resp,
     for (uint8_t i = 0; i < len; i++)
         msg.data[i] = data[i];
 
-    CanBus::bus(1).send(msg);
+    CanBus::bus(0).send(msg);
 }
 
 void EXCC_CAN_CC::sendPong(uint16_t idCanton)

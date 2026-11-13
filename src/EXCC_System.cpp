@@ -38,7 +38,7 @@ extern Adafruit_PWMServoDriver g_pca9685;
  */
 void EXCC_System::init() noexcept
 {
-    // Bus I2C (SDA 21 / SCL 22) — partagé PCA9685 (0x40) et futur digipot
+    // Bus I2C (SDA 21 / SCL 22) — PCA9685 (0x40) et MCP23017 (0x20)
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
     delay(2); // tBUSFREE / stabilisation
 

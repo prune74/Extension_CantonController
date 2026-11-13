@@ -9,6 +9,8 @@
 class EXCC_CanCommands
 {
 public:
-    // Appelé régulièrement dans loop()
+    static void begin();
     static void process();
+    static uint32_t lastRxMs();
+    static bool hasReceivedFrame();
 };

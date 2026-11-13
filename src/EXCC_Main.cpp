@@ -20,8 +20,8 @@
 #include "EXCC_Occupation.h"
 #include "EXCC_Calibration.h"
 
-#include "EXCC_Booster_WS2812.h"
-#include "EXCC_BoosterCore.h"
+#include "EXCC_BoosterUart.h"
+#include "EXCC_CanCommands.h"
 #include "EXCC_StatusLed.h"
 
 #include "Protocol.h"
@@ -122,7 +122,7 @@ EXCC_Signaux_WS2812 signauxAH(stripAH_feux, 9, stripAH_oeil, 1, ExccSignalLayout
 EXCC_LedDirection_WS2812 directionH_WS(stripDIR_H, 0, 1, 2, 3);
 EXCC_LedDirection_WS2812 directionAH_WS(stripDIR_AH, 0, 1, 2, 3);
 
-// Canton WS2812 → LED 0 du strip Booster
+// Canton WS2812 → LED 0 du strip Status
 EXCC_Canton_WS2812 cantonWS(&g_wsStrip[0]);
 
 // Quadrature
@@ -130,9 +130,9 @@ EXCC_Quadrature quadH;
 EXCC_Quadrature quadAH;
 
 // ============================================================
-// Booster WS2812 — INSTANCE UNIQUE
+// Liaison UART vers le Booster externe
 // ============================================================
-EXCC_Booster_WS2812 booster;
+EXCC_BoosterUart boosterUart;
 
 // ============================================================
 // Cycle de vie EXCC
@@ -193,17 +193,14 @@ void EXCC_Main::begin() noexcept
     // Occupation
     EXCC_Occupation::begin();
 
-    // Booster WS2812 (DRV8874 + ADC) — une seule fois ici
-    booster.begin();
+    // CAN Command et liaison vers le Booster externe
+    EXCC_CanCommands::begin();
+    EXCC_Calibration::init();
+    EXCC_Calibration::start();
+    boosterUart.begin();
 
     // Status LEDs (pointeurs sur g_wsStrip, LED 0..5)
     EXCC_StatusLed::begin(g_wsStrip);
-
-    // ------------------------------------------------------------
-    // 4) Tâche booster — EN DERNIER : tout le matériel est prêt.
-    //    (l'ancien code la lançait au tout début → course au boot)
-    // ------------------------------------------------------------
-    EXCC_BoosterCore::startTask();
 }
 
 void EXCC_Main::loop() noexcept
@@ -211,6 +208,6 @@ void EXCC_Main::loop() noexcept
     // Boucle principale EXCC
     EXCC_Runtime::update();
 
-    // Mise à jour des LEDs Status (LED 4 CAN pour l'instant)
+    // Mise à jour des LEDs Status
     EXCC_StatusLed::update();
 }

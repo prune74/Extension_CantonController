@@ -12,8 +12,7 @@
  *    - temporisations canton
  *    - paramètres WS2812 (signaux SNCF)
  *    - intensités LED directionnelles (PCA9685)
- *    - seuils de sécurité du Booster Chemin de Fer du Chablais (CFC)
- *    - paramètres analogiques DRV8874 (IPROPI)
+ *    - seuils de supervision de l’état du Booster distant
  *
  *  ⚠️ Aucun aspect SNCF ici.
  *     Aucun protocole ici.
@@ -29,7 +28,6 @@
  * ============================================================ */
 #define EXCC_DEBUG true      // Debug série — TODO: repasser à false après validation
 #define EXCC_UART_BAUDRATE 115200 // Vitesse du port série debug (idem monitor_speed)
-#define EXCC_BENCH_RMT_INJECTION 0 // 1 uniquement pour tester le RMT avec l'ESP32 seul
 #define EXCC_DEBOUNCE_MS 5   // Anti-rebond capteur présence
 #define EXCC_MAX_ESSIEUX 200 // Limite sécurité comptage
 
@@ -65,76 +63,13 @@
 #define EXCC_DIR_LED3_INTENSITE 255
 
 /* ============================================================
- *  Sécurité Booster Chemin de Fer du Chablais (CFC)
- * ------------------------------------------------------------
- *  Seuils de protection voie :
- *
- *  - EXCC_BOOSTER_MAX_COURANT_mA
- *      Courant max avant coupure (court-circuit local)
- *
- *  - EXCC_BOOSTER_MIN_TENSION_mV
- *      Tension min avant coupure (voie OFF / alim faible)
- *
- *  - EXCC_BOOSTER_PHASE_TOLERANCE
- *      Tolérance inversion de phase DCC (0 = strict)
- *
- *  - EXCC_BOOSTER_ENABLE_GLOBAL_PROTECTION
- *      true  = coupe si un autre booster signale un défaut
- *      false = ignore les défauts des autres boosters
- *
- *  - EXCC_BOOSTER_ENABLE_GLOBAL_CUTOUT
- *      true  = coupe si cutout global actif
- *      false = ignore le cutout global
+ *  Seuils de supervision du Booster distant
  * ============================================================ */
 #define EXCC_BOOSTER_MAX_COURANT_mA 1400
 #define EXCC_BOOSTER_MIN_TENSION_mV 12000
-#define EXCC_BOOSTER_PHASE_TOLERANCE 0
-#define EXCC_BOOSTER_ENABLE_GLOBAL_PROTECTION true
-#define EXCC_BOOSTER_ENABLE_GLOBAL_CUTOUT true
-#define EXCC_BOOSTER_CUTOUT_US 454 // Fenetre nominale du booster RMT de reference
 
 /* ============================================================
- *  Mesure courant via DRV8874 (IPROPI)
- * ------------------------------------------------------------
- *  Formule :
- *      I = V_IPROPI / (R_IPROPI * A_IPROPI)
- *
- *  Avec :
- *      R_IPROPI = 3,6 kΩ
- *      A_IPROPI = 455 µA/A
- *
- *  Permet une mesure précise du courant voie.
- * ============================================================ */
-#define EXCC_IPROPI_R_OHMS 3600.0f
-#define EXCC_IPROPI_GAIN_A_PER_A 0.000455f
-
-/* ============================================================
- *  Mesure tension voie DCC (pont diviseur)
- * ------------------------------------------------------------
- *  Pont diviseur :
- *      R1 = 68 kΩ (haut)
- *      R2 = 10 kΩ (bas)
- *
- *  Formule :
- *      Vrail = Vmes * (R1 + R2) / R2
- * ============================================================ */
-#define EXCC_ADC_VOLTAGE_R1_OHMS 68000.0f
-#define EXCC_ADC_VOLTAGE_R2_OHMS 10000.0f
-
-// Tension de référence ADC ESP32
-#define EXCC_ADC_VREF 3.3f
-
-// Facteur de conversion (pré-calculé)
-#define EXCC_ADC_VOLTAGE_FACTOR \
-    ((EXCC_ADC_VOLTAGE_R1_OHMS + EXCC_ADC_VOLTAGE_R2_OHMS) / EXCC_ADC_VOLTAGE_R2_OHMS)
-
-/* ============================================================
- *  État global du Booster Chemin de Fer du Chablais (CFC)
- * ------------------------------------------------------------
- *  Utilisé dans EXCC_BoosterCore pour :
- *    - télémétrie
- *    - sécurité
- *    - trames 0x07 vers CC
+ *  État de supervision envoyé au CantonController.
  * ============================================================ */
 enum ExccBoosterEtat : uint8_t
 {
@@ -150,7 +85,7 @@ enum ExccBoosterEtat : uint8_t
  *  Détection d’occupation par courant (Booster Chemin de Fer du Chablais (CFC))
  * ------------------------------------------------------------
  *  L’occupation du canton est déterminée par la consommation
- *  de courant mesurée via IPROPI (DRV8874).
+ *  de courant mesurée par le Booster et transmise par UART.
  *
  *  Hystérésis :
  *    - Si LIBRE  → devient OCCUPÉ si courant > EXCC_SEUIL_OCCUPE_mA

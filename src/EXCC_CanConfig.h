@@ -14,8 +14,7 @@ class EXCC_CanConfig : public CanConfigProvider
 public:
     uint8_t busCount() const override
     {
-        return 1; // PHASE 1 : un seul bus TWAI (booster + CantonController).
-                  // Le bus 29 bits MCP2515 est reporté sur une carte dédiée.
+        return 1; // Un seul bus TWAI : CAN Command vers le CantonController.
     }
 
     const CanBusConfig &bus(uint8_t index) const override
@@ -24,7 +23,7 @@ public:
 
         switch (index)
         {
-        case 0: // Bus 0 : TWAI interne — convertisseur DCC ↔ EXCC ↔ CantonController
+        case 0: // Bus 0 : TWAI interne — CAN Command EXCC ↔ CantonController
             cfg.enabled   = true;
             cfg.speed     = CAN_BITRATE;
 
@@ -39,7 +38,7 @@ public:
 
             cfg.quartz    = 0;
 
-            cfg.loopback  = true;
+            cfg.loopback  = false;
             return cfg;
         }
 

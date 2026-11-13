@@ -28,8 +28,7 @@
 #include "EXCC_Switches.h"
 #include "EXCC_Calibration.h"
 #include "EXCC_Occupation.h"
-#include "EXCC_BoosterCore.h"
-#include "EXCC_Tension_Booster.h"
+#include "EXCC_BoosterUart.h"
 
 #include "EXCC_CAN_CC.h"
 #include <Arduino.h>
@@ -52,6 +51,7 @@ extern EXCC_LedDirection_WS2812 directionH_WS;
 extern EXCC_LedDirection_WS2812 directionAH_WS;
 
 extern EXCC_Canton_WS2812 cantonWS;
+extern EXCC_BoosterUart boosterUart;
 
 /* ============================================================================
  *  ID du canton (reçu via CANTON_ID = 0xFD)
@@ -81,12 +81,12 @@ static ExccSignalLayout mapTypeToLayout(uint8_t t)
  */
 void EXCC_Callbacks::onCantonID(const uint8_t *data, uint8_t len) noexcept
 {
+    if (len < 1)
+        return;
+
 #if EXCC_DEBUG
     Serial.printf("[EXCC] CANTON_ID reçu : %u\n", data[0]);
 #endif
-
-    if (len < 1)
-        return;
 
     g_idCC = data[0];
 }
@@ -239,7 +239,7 @@ void EXCC_Callbacks::onBoosterPower(uint8_t power) noexcept
     Serial.printf("[EXCC] BOOSTER POWER : %s\n", power ? "ON" : "OFF");
 #endif
 
-    EXCC_BoosterCore::setEnabled(power != 0);
+    boosterUart.setPowerEnabled(power != 0);
 }
 
 /* ============================================================================
@@ -255,5 +255,5 @@ void EXCC_Callbacks::onProfileVoie(uint8_t profile) noexcept
     // profile = 0 → voie N (12V)
     // profile = 1 → voie HO (15V)
 
-    EXCC_Tension_Booster::setTrackProfile(profile == 1);
+    boosterUart.setTrackProfile(profile == 1);
 }

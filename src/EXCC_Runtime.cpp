@@ -1,100 +1,123 @@
 /*
- * ============================================================================
- *  Module : EXCC_Runtime (WS2812 Version)
- *  Rôle   : Boucle d’exécution principale EXCC (hors Booster).
- *
- *  Fonctionnement général (Chemin de Fer du Chablais (CFC)) :
- *    - Appelé en continu par EXCC_Main::loop()
- *    - Exécute toutes les tâches temps réel EXCC :
- *         1) Mise à jour signaux SNCF WS2812 (H et AH)
- *         2) Mise à jour canton WS2812 (occupation + mouvement + erreur)
- *         3) Mise à jour aiguilles (anti‑blocage)
- *
- *  Notes :
- *    - Le Booster tourne dans sa propre tâche FreeRTOS.
- *    - Les feux directionnels WS2812 n’ont pas de logique interne :
- *         → pas de clignotement
- *         → pas d’animation
- *         → pas de mise à jour dans la boucle runtime
- * ============================================================================
+ * Module : EXCC_Runtime
+ * Rôle   : Boucle d’exécution principale EXCC et passerelles CAN/UART.
  */
 
 #include "EXCC_Runtime.h"
 
 #include "EXCC_Signaux_WS2812.h"
-
 #include "EXCC_Ponctuel.h"
 #include "EXCC_Occupation.h"
 #include "EXCC_Compteur.h"
-#include "EXCC_Booster_WS2812.h"
-
+#include "EXCC_BoosterUart.h"
+#include "EXCC_CanCommands.h"
+#include "EXCC_Calibration.h"
+#include "EXCC_CAN_CC.h"
 #include "EXCC_Canton_WS2812.h"
 #include "EXCC_Switches.h"
+#include "EXCC_Config.h"
 
 #include "Ws2812All.h"
 #include <Arduino.h>
 
-// ---------------------------------------------------------------------------
-// Protection plateforme : ce module nécessite l'ESP32
-// ---------------------------------------------------------------------------
 #ifndef ESP32
 #error "Ce module doit être compilé pour ESP32 uniquement."
 #endif
 
-// Instances globales déclarées dans EXCC_Main.cpp
 extern EXCC_Signaux_WS2812 signauxH;
 extern EXCC_Signaux_WS2812 signauxAH;
-
 extern EXCC_Canton_WS2812 cantonWS;
+extern EXCC_BoosterUart boosterUart;
+extern uint8_t g_idCC;
 
-extern EXCC_Booster_WS2812 booster;
-/* ============================================================================
- * update()
- * ----------------------------------------------------------------------------
- * Boucle principale EXCC (hors booster).
- * Appelée en continu par EXCC_Main::loop().
- * ============================================================================
- */
+namespace
+{
+bool s_calibrationEnvoyee = false;
+uint32_t s_lastBoosterReportMs = 0;
+}
+
 void EXCC_Runtime::update() noexcept
 {
-   uint32_t now = millis();
+    const uint32_t now = millis();
 
-   /* --------------------------------------------------------
-      Mise à jour Occupation (fusion des sources)
-      -------------------------------------------------------- */
+    boosterUart.process();
+    EXCC_CanCommands::process();
 
-   // Courant du booster
-   EXCC_Occupation::majCourant(booster.readCurrent_mA());
+    EXCC_Occupation::majCourant(
+        boosterUart.current_mA(),
+        boosterUart.isCurrentValid());
+    EXCC_Occupation::majCompteur(EXCC_Compteur::compteurGlobal());
+    EXCC_Occupation::majPonctuels(
+        EXCC_Ponctuel::estActifH(),
+        EXCC_Ponctuel::estActifAH());
+    EXCC_Occupation::calculerOccupationFinale();
 
-   // Compteur d’essieux
-   EXCC_Occupation::majCompteur(EXCC_Compteur::compteurGlobal());
+    if (EXCC_Calibration::isRunning())
+        s_calibrationEnvoyee = false;
+    else if (EXCC_Calibration::isDone() && !s_calibrationEnvoyee)
+    {
+        s_calibrationEnvoyee = true;
+        EXCC_CAN_CC::envoyerCalibBooster(
+            g_idCC,
+            EXCC_Calibration::getSeuilLibre(),
+            EXCC_Calibration::getSeuilOccupe());
+    }
 
-   // Ponctuels H / AH
-   EXCC_Occupation::majPonctuels(
-       EXCC_Ponctuel::estActifH(),
-       EXCC_Ponctuel::estActifAH());
+    if (now - s_lastBoosterReportMs >= 200)
+    {
+        s_lastBoosterReportMs = now;
+        ExccBoosterEtat etat = BOOSTER_ERREUR;
 
-   // Calcul final de l’occupation
-   EXCC_Occupation::calculerOccupationFinale();
+        if (boosterUart.isSampleFresh())
+        {
+            const uint16_t courant = boosterUart.current_mA();
+            const uint16_t tension = boosterUart.voltage_mV();
+            switch (boosterUart.state())
+            {
+            case ExccRemoteBoosterState::FAULT:
+                etat = (courant > EXCC_BOOSTER_MAX_COURANT_mA)
+                           ? BOOSTER_COURT_CIRCUIT
+                           : (tension < EXCC_BOOSTER_MIN_TENSION_mV
+                                  ? BOOSTER_SOUS_TENSION
+                                  : BOOSTER_ERREUR);
+                break;
+            case ExccRemoteBoosterState::OVERHEAT:
+                etat = BOOSTER_SURCHAUFFE;
+                break;
+            case ExccRemoteBoosterState::OFF:
+                etat = boosterUart.powerRequested() ? BOOSTER_ERREUR : BOOSTER_OFF;
+                break;
+            case ExccRemoteBoosterState::RETRY:
+                etat = BOOSTER_ERREUR;
+                break;
+            case ExccRemoteBoosterState::OK:
+                if (!boosterUart.powerRequested())
+                    etat = BOOSTER_OFF;
+                else if (tension < EXCC_BOOSTER_MIN_TENSION_mV)
+                    etat = BOOSTER_SOUS_TENSION;
+                else if (courant > EXCC_BOOSTER_MAX_COURANT_mA)
+                    etat = BOOSTER_COURT_CIRCUIT;
+                else
+                    etat = BOOSTER_OK;
+                break;
+            }
+        }
 
-   /* --------------------------------------------------------
-      Mise à jour des signaux SNCF WS2812
-      -------------------------------------------------------- */
-   signauxH.update(now);
-   signauxAH.update(now);
+        EXCC_CAN_CC::envoyerBooster(
+            g_idCC,
+            etat,
+            min<uint16_t>(boosterUart.current_mA() / 10, 255),
+            min<uint16_t>(boosterUart.voltage_mV() / 100, 255));
+    }
 
-   /* --------------------------------------------------------
-      Mise à jour canton WS2812
-      -------------------------------------------------------- */
-   cantonWS.update();
+    uint16_t railcomAddress = 0;
+    uint8_t railcomType = 0;
+    while (boosterUart.takeRailComEvent(railcomAddress, railcomType))
+        EXCC_CAN_CC::envoyerRailcom(g_idCC, railcomType, railcomAddress);
 
-   /* --------------------------------------------------------
-      Mise à jour aiguilles (anti‑blocage)
-      -------------------------------------------------------- */
-   EXCC_Switches::update();
-
-   /* --------------------------------------------------------
-      Application WS2812
-      -------------------------------------------------------- */
-   Ws2812All::showAll();
+    signauxH.update(now);
+    signauxAH.update(now);
+    cantonWS.update();
+    EXCC_Switches::update();
+    Ws2812All::showAll();
 }

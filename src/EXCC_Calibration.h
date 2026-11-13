@@ -8,7 +8,7 @@
  *
  * Fonctionnement :
  *   - start()   : lance une calibration (voie supposée vide)
- *   - process() : appelé toutes les 1 ms (BoosterCore)
+ *   - process() : appelé pour chaque échantillon courant valide reçu à 1 kHz
  *   - isDone()  : indique que les seuils sont prêts
  *
  * API :
@@ -22,7 +22,7 @@ namespace EXCC_Calibration
     void init();
 
     void start();   // lance une calibration
-    void process(); // à appeler toutes les 1 ms
+    void process(uint16_t courant_mA);
 
     bool isRunning();
     bool isDone();

@@ -4,7 +4,7 @@
  *
  * Fonctionnement général :
  *   - start()   : reset + début calibration
- *   - process() : 1 échantillon par ms (appelé dans BoosterCore)
+ *   - process() : un échantillon valide par milliseconde reçu par UART
  *   - isDone()  : seuils prêts
  *
  * Avantages :
@@ -15,14 +15,11 @@
 
 #include "EXCC_Calibration.h"
 #include "EXCC_Config.h"
-#include "EXCC_Booster_WS2812.h"
 
 #include <Arduino.h>
 
 #include <math.h>
 #include <algorithm>
-
-extern EXCC_Booster_WS2812 booster;
 
 /* ============================================================
  * Variables internes
@@ -81,15 +78,13 @@ void EXCC_Calibration::start()
 }
 
 /* ============================================================
- * process() — appelé toutes les 1 ms
+ * process() — appelé pour chaque mesure valide reçue
  * ============================================================ */
-void EXCC_Calibration::process()
+void EXCC_Calibration::process(uint16_t i_mA)
 {
     if (!s_running)
         return;
 
-    // 1 échantillon par ms
-    uint16_t i_mA = booster.readCurrent_mA();
     s_somme += i_mA;
     s_sommeCarres += (uint32_t)i_mA * i_mA;
     s_index++;

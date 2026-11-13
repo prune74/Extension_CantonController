@@ -2,8 +2,6 @@
 
 #include "EXCC_Compteur.h"
 #include "EXCC_Ponctuel.h"
-#include "EXCC_RailCom.h"
-#include "EXCC_Booster_WS2812.h"
 #include "EXCC_CAN_CC.h"
 #include "EXCC_Canton_WS2812.h"
 #include "EXCC_Calibration.h"
@@ -17,6 +15,7 @@ extern uint8_t g_idCC;
 //  Variables statiques
 // ---------------------------------------------------------------------------
 bool EXCC_Occupation::s_occCourant = false;
+bool EXCC_Occupation::s_courantValide = false;
 bool EXCC_Occupation::s_occCompteur = false;
 bool EXCC_Occupation::s_occPonctuel = false;
 
@@ -31,6 +30,7 @@ bool EXCC_Occupation::s_dernierEnvoi = false;
 void EXCC_Occupation::begin()
 {
     s_occCourant = false;
+    s_courantValide = false;
     s_occCompteur = false;
     s_occPonctuel = false;
 
@@ -43,8 +43,16 @@ void EXCC_Occupation::begin()
 // ---------------------------------------------------------------------------
 //  majCourant()
 // ---------------------------------------------------------------------------
-void EXCC_Occupation::majCourant(uint16_t courant_mA)
+void EXCC_Occupation::majCourant(uint16_t courant_mA, bool valide)
 {
+    if (!valide)
+    {
+        s_occCourant = true;
+        s_courantValide = false;
+        return;
+    }
+
+    s_courantValide = true;
     uint16_t seuilLibre = EXCC_Calibration::getSeuilLibre();
     uint16_t seuilOccupe = EXCC_Calibration::getSeuilOccupe();
 
@@ -146,7 +154,7 @@ void EXCC_Occupation::calculerOccupationFinale()
         occ = true;
 
     // EA = 0 → canton DOIT être vide
-    if (s_voisinsEA == 0)
+    if (s_voisinsEA == 0 && s_courantValide)
         occ = false;
 
     // -----------------------------------------------------------------------

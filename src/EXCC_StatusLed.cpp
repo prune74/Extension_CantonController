@@ -1,9 +1,8 @@
 #include "EXCC_StatusLed.h"
-#include "EXCC_CanBooster.h"
-#include "EXCC_Booster_WS2812.h"
+#include "EXCC_CanCommands.h"
+#include "EXCC_BoosterUart.h"
 #include "Protocol.h"
 #include "EXCC_Switches.h"
-#include "CAN_DCC_RMT-Booster.h"
 #include "EXCC_Config.h"
 #include <Arduino.h>
 
@@ -14,7 +13,7 @@
 #error "Ce module doit être compilé pour ESP32 uniquement."
 #endif
 
-extern EXCC_Booster_WS2812 booster;
+extern EXCC_BoosterUart boosterUart;
 
 // Pointeurs vers les LEDs du strip
 WsCrgb *EXCC_StatusLed::LED_CAN = nullptr;
@@ -50,11 +49,11 @@ void EXCC_StatusLed::updateLedCan()
         return;
 
     uint32_t now = millis();
-    uint32_t last = EXCC_CanBooster::lastCanRxMs();
+    uint32_t last = EXCC_CanCommands::lastRxMs();
 
-    if (now - last < 200)
+    if (last != 0 && now - last < 200)
         *LED_CAN = WsCrgb::Green();
-    else if (now - last < 1000)
+    else if (last != 0 && now - last < 1000)
         *LED_CAN = WsCrgb::Orange();
     else
         *LED_CAN = WsCrgb::Red();
@@ -68,32 +67,19 @@ void EXCC_StatusLed::updateLedRailcom()
     if (!LED_RAILCOM)
         return;
 
-    const BoosterTelemetry &t = booster.getTelemetry();
+    if (!boosterUart.isSampleFresh())
+    {
+        *LED_RAILCOM = WsCrgb::Red();
+        return;
+    }
 
-    uint32_t now = millis();
-    uint32_t lastCutout = EXCC_CanBooster::lastCutoutMs();
-    bool cutoutActive = EXCC_CanBooster::isCutoutActive();
-    bool cutoutOk = (now - lastCutout < 50);
-
-    if (t.railcomAddress != BoosterConstants::RAILCOM_NO_ADDRESS)
+    if (boosterUart.hasRecentRailCom())
     {
         *LED_RAILCOM = (millis() & 100) ? WsCrgb(150, 0, 255) : WsCrgb::Black();
         return;
     }
 
-    if (cutoutActive)
-    {
-        *LED_RAILCOM = WsCrgb::White();
-        return;
-    }
-
-    if (cutoutOk)
-    {
-        *LED_RAILCOM = WsCrgb(0, 0, 20);
-        return;
-    }
-
-    *LED_RAILCOM = WsCrgb::Red();
+    *LED_RAILCOM = WsCrgb(0, 0, 20);
 }
 
 /* ============================================================
@@ -104,21 +90,24 @@ void EXCC_StatusLed::updateLedTelemetry()
     if (!LED_TELEM)
         return;
 
-    const BoosterTelemetry &t = booster.getTelemetry();
+    const uint16_t courant = boosterUart.current_mA();
+    const uint16_t tension = boosterUart.voltage_mV();
 
-    if (t.error == BoosterError::HARDWARE_FAULT)
+    if (!boosterUart.isSampleFresh() ||
+        boosterUart.state() == ExccRemoteBoosterState::FAULT ||
+        boosterUart.state() == ExccRemoteBoosterState::OVERHEAT)
     {
         *LED_TELEM = WsCrgb::Red();
         return;
     }
 
-    if (t.voltage_mV < EXCC_BOOSTER_MIN_TENSION_mV)
+    if (tension < EXCC_BOOSTER_MIN_TENSION_mV)
     {
         *LED_TELEM = WsCrgb::Blue();
         return;
     }
 
-    if (t.current_mA > (EXCC_BOOSTER_MAX_COURANT_mA * 8) / 10)
+    if (courant > (EXCC_BOOSTER_MAX_COURANT_mA * 8) / 10)
     {
         *LED_TELEM = WsCrgb::Orange();
         return;
@@ -135,18 +124,22 @@ void EXCC_StatusLed::updateLedState()
     if (!LED_STATE)
         return;
 
-    const BoosterTelemetry &t = booster.getTelemetry();
-
     ExccBoosterEtat etat;
 
-    if (!booster.isEnabled())
+    if (!boosterUart.isSampleFresh())
+        etat = BOOSTER_ERREUR;
+    else if (!boosterUart.powerRequested())
         etat = BOOSTER_OFF;
-    else if (t.voltage_mV < EXCC_BOOSTER_MIN_TENSION_mV)
-        etat = BOOSTER_SOUS_TENSION;
-    else if (t.current_mA > EXCC_BOOSTER_MAX_COURANT_mA)
-        etat = BOOSTER_COURT_CIRCUIT;
-    else if (t.error == BoosterError::HARDWARE_FAULT)
+    else if (boosterUart.state() == ExccRemoteBoosterState::OFF)
+        etat = BOOSTER_ERREUR;
+    else if (boosterUart.state() == ExccRemoteBoosterState::OVERHEAT)
         etat = BOOSTER_SURCHAUFFE;
+    else if (boosterUart.state() == ExccRemoteBoosterState::FAULT)
+        etat = BOOSTER_ERREUR;
+    else if (boosterUart.voltage_mV() < EXCC_BOOSTER_MIN_TENSION_mV)
+        etat = BOOSTER_SOUS_TENSION;
+    else if (boosterUart.current_mA() > EXCC_BOOSTER_MAX_COURANT_mA)
+        etat = BOOSTER_COURT_CIRCUIT;
     else
         etat = BOOSTER_OK;
 

@@ -36,7 +36,7 @@ public:
     static void begin();
 
     // Mise à jour depuis le courant mesuré par le booster
-    static void majCourant(uint16_t courant_mA);
+    static void majCourant(uint16_t courant_mA, bool valide);
 
     // Mise à jour depuis le compteur d’essieux
     static void majCompteur(int compteurGlobal);
@@ -60,6 +60,7 @@ private:
 private:
     // États internes des différentes sources
     static bool s_occCourant;     // occupation par courant
+    static bool s_courantValide;  // indique si la mesure distante est fraîche
     static bool s_occCompteur;    // occupation par compteurGlobal
     static bool s_occPonctuel;    // occupation par ponctuels H/AH
 

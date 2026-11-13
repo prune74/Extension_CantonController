@@ -41,7 +41,7 @@ Ce système permet de :
 ## 🎯 Fonctionnalités
 
 ### ✅ Gestion des Cantons
-- Détection d'occupation par mesure de courant (via DRV8874)
+- Détection d'occupation par courant mesuré par le Booster externe et transmis par UART
 - Gestion des seuils configurables (libre/occupé)
 - Animation LED pour visualisation du statut
 - Comptage d'essieux pour validation des trains
@@ -63,25 +63,22 @@ Ce système permet de :
 - Feedback via micro-switches
 - Vitesse et positions configurables
 
-### ✅ Booster DCC
-- Génération du signal DCC
-- Mesure de courant et tension en temps réel
-- Protection contre les courts-circuits
-- Détection thermique
-- Gestion du cutout RailCom
-- Décodage RailCom HF
+### ✅ Supervision du Booster DCC
+- Commandes de puissance et profil de voie relayées par UART
+- Mesures courant/tension reçues à 1 kHz
+- État et événements RailCom relayés vers le CC
+- La génération DCC, le DRV8874 et le cutout RailCom sont sur l’ESP32 Booster séparé
 
 ### ✅ Communication CAN
 - Protocole CAN 2.0B (29 bits)
-- Communication bidirectionnelle avec CC, ERM, CLF
+- Communication bidirectionnelle avec le CantonController (CC)
 - Gestion des priorités
 - Filtres de messages
 
 ### ✅ Télémétrie
-- Mesure de courant via IPROPI (DRV8874)
-- Mesure de tension via pont diviseur
-- Échantillonnage RailCom
-- LED de statut (CAN, RailCom, Booster)
+- Courant et tension du Booster reçus par UART à 1 kHz
+- Événements RailCom relayés au CC
+- LED de statut CAN Command, RailCom et Booster
 
 ---
 
@@ -117,81 +114,39 @@ Ce système permet de :
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘      │
 │                                                                     │
 │  ┌─────────────────┐  ┌──────────────────────────────────────────┐  │
-│  │ EXCC_Booster    │  │         EXCC_CanBooster                  │  │
-│  │ (WS2812)        │  │  - process() canMessages                 │  │
-│  │ - DCC Generation│  │  - handleFrame()                         │  │
-│  │ - RailCom       │  │  - Cutout management                     │  │
-│  │ - Telemetry     │  └──────────────────────────────────────────┘  │
-│  └────────┬────────┘                                                │
-│           │                                                         │
-│  ┌─────────────────┐    ┌─────────────────┐                         │
-│  │EXCC_BoosterCore │    │ EXCC_Callbacks  │                         │
-│  │ (Tâche FreeRTOS)│    │ (CC → EXCC)     │                         │
-│  └─────────────────┘    └─────────────────┘                         │
+│  │EXCC_BoosterUart │  │         EXCC_CanCommands                  │  │
+│  │ UART2 460800    │  │ CAN Command, bus 0, 250 kbit/s         │  │
+│  │ mesures/RailCom │  │ EXCC_Callbacks (CC → EXCC)              │  │
+│  └─────────────────┘  └──────────────────────────────────────────┘  │
 │                                                                     │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                    Bus CAN (ACAN_ESP32 / ACAN2515)            │  │
-│  │  - CanBus::bus(1).send(msg)                                   │  │
-│  │  - EXCC_CAN_CC::sendPong(), envoyerOccupation(), etc.         │  │
+│  │                    CAN Command et UART                       │  │
+│  │  - CAN Command : EXCC_CAN_CC / EXCC_CanCommands, bus 0        │  │
+│  │  - UART : commandes, mesures 1 kHz, état et RailCom          │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 
-                 ┌─────────────────┐
-                 │   DIP Switch    │
-                 │   Configuration │
-                 └────────┬────────┘
-                          │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐
-│  PCA9685      │    │  DRV8874      │    │  MCP23017     │
-│  (Servos)     │    │  (Booster)    │    │  (I/O)        │
-└───────────────┘    └───────────────┘    └───────────────┘
-        │                     │                     │
-┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐
-│  WS2812/15    │    │  Capteurs     │    │  Switches     │
-│  (Signaux)    │    │  (Quadrature) │    │  (Aiguillages)│
-└───────────────┘    └───────────────┘    └───────────────┘
+UART2 TX/RX GPIO16/17
+          │
+          ▼
+┌─────────────────────────────────────────┐
+│ ESP32 Booster externe                   │
+│ CAN DCC · génération DCC · DRV8874      │
+│ mesures courant/tension · RailCom       │
+└─────────────────────────────────────────┘
 ```
 
 ### Diagramme de Flux de Données
 
 ```
-┌─────────────┐        ┌─────────────┐        ┌─────────────┐
-│   CC        │        │   ERM       │        │   CLF       │
-│ (Controller)│        │ (Maître)    │        │ (Logique)   │
-└──────┬──────┘        └──────┬──────┘        └──────┬──────┘
-       │                      │                      │
-       │ CAN (Cmd_CC_to_EXCC) │                      │
-       ▼                      ▼                      ▼
-┌───────────────────────────────────────────────────────────────┐
-│                        EXCC                                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────┐   │
-│  │  Callbacks  │  │   CAN RX    │  │   Traitement CAN     │   │
-│  │  (Réception)│  │ (Messages)  │  │   (EXCC_CAN_CC)      │   │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬───────────┘   │
-│         │                │                      │             │
-│         ▼                ▼                      ▼             │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │                    EXCC_Main::loop()                    │  │
-│  │  - Mise à jour des signaux                              │  │
-│  │  - Gestion occupation                                   │  │
-│  │  - Contrôle servos                                      │  │
-│  │  - Télémétrie booster                                   │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │                    EXCC_CAN_CC::send*()                 │  │
-│  │  - PONG, BOOSTER_INFO, OCCUPATION, etc.                 │  │
-│  └─────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────────┘
-       │                    │                   │
-       ▼                    ▼                   ▼
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   CC        │     │   ERM       │     │   CLF       │
-│ (Controller)│     │ (Maître)    │     │ (Logique)   │
-└─────────────┘     └─────────────┘     └─────────────┘
+LaBox/Hub ── CAN DCC ── DCC_CAN_RMT-Booster ── CAN DCC ── ESP32 Booster
+LaBox ── CAN général ── CantonController (CC)
+CC ── CAN Command (250 kbit/s) ── EXCC
+EXCC ── UART (460800 bauds, commandes/télémétrie) ── ESP32 Booster
+ESP32 Booster ── RMT ── DRV8874 ── voie
+
+La trame 0x102 reste sur le CAN DCC pour la protection entre boosters.
 ```
 
 ---
@@ -212,10 +167,8 @@ Extension_CantonController/
 │   ├── EXCC_Config.h             # Configuration globale
 │   ├── EXCC_Pins.h               # Définition des broches
 │   ├── 
-│   ├── EXCC_BoosterCore.h/cpp    # Tâche FreeRTOS du booster
-│   ├── EXCC_BoosterHardware.h/cpp # Interface matériel booster
-│   ├── EXCC_Booster_WS2812.h/cpp  # Booster + télémétrie + RailCom
-│   ├── EXCC_CanBooster.h/cpp      # Communication CAN du booster
+│   ├── EXCC_BoosterUart.h/cpp     # Passerelle UART vers le booster externe
+│   ├── UartProtocol.h             # Trames versionnées et CRC-16
 │   ├── EXCC_CAN_CC.h/cpp          # Envoi de messages CAN (EXCC → CC)
 │   ├── 
 │   ├── EXCC_Callbacks.h/cpp       # Gestion des commandes CC → EXCC
@@ -225,7 +178,6 @@ Extension_CantonController/
 │   ├── EXCC_Signaux_WS2812.h/cpp  # Gestion des signaux SNCF (WS2812)
 │   ├── EXCC_Canton_WS2812.h/cpp   # Gestion LED canton
 │   ├── EXCC_LedDirection_WS2812.h/cpp # LED directionnelles
-│   ├── EXCC_Booster_WS2812.h/cpp  # LED booster
 │   ├── 
 │   ├── EXCC_Servo.h/cpp           # Contrôle des servos (aiguillages)
 │   ├── EXCC_Switches.h/cpp        # Gestion des micro-switches
@@ -234,12 +186,10 @@ Extension_CantonController/
 │   ├── EXCC_Occupation.h/cpp      # Gestion occupation canton
 │   ├── EXCC_Compteur.h/cpp        # Compteur général
 │   ├── EXCC_CompteurEssieux.h/cpp # Compteur d'essieux
-│   ├── EXCC_Railcom.h/cpp         # Décodage RailCom
 │   ├── 
 │   ├── EXCC_Calibration.h/cpp     # Calibration des capteurs
 │   ├── EXCC_Runtime.h/cpp         # Runtime et utilitaires
 │   ├── EXCC_System.h/cpp          # Gestion système
-│   └── EXCC_Tension_Booster.h/cpp # Mesure tension
 └── test/                         # Tests unitaires
 ```
 
@@ -410,35 +360,18 @@ enum SignalType : uint8_t
 
 ### Bus CAN
 
-- **Driver** : ACAN_ESP32 (ESP32 natif) ou ACAN2515 (via MCP2515)
-- **Vitesse** : Configurable (généralement 500 kbps ou 1 Mbps)
-- **Filtres** : Filtrage matérielle des messages CAN
-- **Bibliothèques** : 
-  - `pierremolinaro/ACAN_ESP32`
-  - `pierremolinaro/ACAN2515`
+- **CAN Command EXCC↔CC** : TWAI natif, bus 0, 250 kbit/s
+- **CAN DCC** : reste sur le TWAI du Booster externe; il n’est pas raccordé à l’EXCC
+- **CAN général** : réseau physique distinct
+- **Bibliothèque EXCC** : `prune74/CanUniversal @ 3.1.1`
 
-### Classes de Communication
+### Liaison UART EXCC↔Booster
 
-#### CanBus
-Interface unifiée pour le bus CAN :
-- `CanBus::bus(1).send(msg)` - Envoyer un message
-- Configuration des filtres
-- Gestion des interruptions
-
-#### CanMsg
-Structure de message CAN :
-```cpp
-struct CanMsg {
-    uint32_t id;      // Identifiant CAN
-    uint8_t data[8];  // Données (0-8 bytes)
-    uint8_t dlc;      // Longueur des données
-};
-```
-
-#### CanID
-Utilitaires pour la construction des identifiants CAN :
-- `CanID::make29(priority, cmd, resp, cantonId)`
-- Extraction des champs
+- **Débit** : 460800 bauds, 8N1
+- **EXCC** : UART2, TX GPIO16 / RX GPIO17
+- **Booster** : UART1, TX GPIO17 / RX GPIO16
+- Trames versionnées avec CRC-16; échantillons de courant/tension à 1 kHz
+- Heartbeat EXCC toutes les 100 ms; la sortie Booster est coupée après 250 ms sans heartbeat valide
 
 ---
 
@@ -448,7 +381,8 @@ Utilitaires pour la construction des identifiants CAN :
 
 #### Options Générales
 ```cpp
-#define EXCC_DEBUG false           // Debug série
+#define EXCC_DEBUG true            // Debug série (à désactiver après validation)
+#define EXCC_UART_BAUDRATE 115200  // Port série de diagnostic
 #define EXCC_DEBOUNCE_MS 5         // Anti-rebond capteur
 #define EXCC_MAX_ESSIEUX 200       // Limite comptage essieux
 ```
@@ -459,27 +393,12 @@ Utilitaires pour la construction des identifiants CAN :
 #define EXCC_WS2812_BLINK_PERIOD_MS 500     // Période clignotement
 ```
 
-#### Sécurité Booster
+#### Supervision Booster
 ```cpp
 #define EXCC_BOOSTER_MAX_COURANT_mA 1400    // Courant max
 #define EXCC_BOOSTER_MIN_TENSION_mV 12000   // Tension min
-#define EXCC_BOOSTER_PHASE_TOLERANCE 0       // Tolérance phase
-#define EXCC_BOOSTER_ENABLE_GLOBAL_PROTECTION true
-#define EXCC_BOOSTER_ENABLE_GLOBAL_CUTOUT true
 ```
-
-#### Mesure Courant (DRV8874)
-```cpp
-#define EXCC_IPROPI_R_OHMS 3600.0f      // Résistance IPROPI
-#define EXCC_IPROPI_GAIN_A_PER_A 0.000455f // Gain
-```
-
-#### Mesure Tension
-```cpp
-#define EXCC_ADC_VOLTAGE_R1_OHMS 68000.0f   // Pont diviseur haut
-#define EXCC_ADC_VOLTAGE_R2_OHMS 10000.0f   // Pont diviseur bas
-#define EXCC_ADC_VREF 3.3f                 // Tension référence ADC
-```
+La mesure est effectuée par le Booster externe puis transmise à l’EXCC par UART.
 
 #### Seuils d'Occupation
 ```cpp
@@ -496,7 +415,7 @@ constexpr uint8_t AIG_COUNT = 6;  // 6 aiguillages max
 
 ```ini
 [env:esp32dev]
-platform = espressif32
+platform = espressif32@6.9.0
 board = esp32dev
 framework = arduino
 
@@ -512,14 +431,11 @@ board_build.flash_size = 4MB
 board_build.partitions = default.csv
 
 lib_deps =
-    https://github.com/prune74/CAN_DCC-Booster.git
     prune74/Ws2812Universal @ 1.1.0
-    prune74/CanUniversal
+    prune74/CanUniversal @ 3.1.1
     adafruit/Adafruit PWM Servo Driver Library
     adafruit/Adafruit MCP23017 Arduino Library
     adafruit/Adafruit BusIO
-    pierremolinaro/ACAN_ESP32
-    pierremolinaro/ACAN2515
 ```
 
 ---
@@ -530,37 +446,36 @@ lib_deps =
 
 | Composant | Rôle | Brochage |
 |-----------|------|----------|
-| ESP32 | Microcontrôleur | - |
-| DRV8874 | Driver booster DCC | IN1, IN2, EN, IPROPI |
+| ESP32 EXCC | Cantons, signaux, servos, switches et passerelle UART/CAN | - |
+| ESP32 Booster externe | Génération DCC, DRV8874, mesures et RailCom | UART avec EXCC |
 | PCA9685 | PWM pour servos | SDA, SCL |
 | MCP23017 | Extension I/O | SDA, SCL |
 | WS2812/WS2815 | LED signaux | GPIO configurable |
-| MCP2515 | Contrôleur CAN (optionnel) | SPI |
+| Transceiver CAN | CAN Command EXCC↔CC | TWAI TX/RX |
 
 ### Broches (EXCC_Pins.h)
 
 Les broches sont configurables via `EXCC_Pins.h`. Voici un exemple de configuration :
 
 ```cpp
-// CAN Bus
-#define CAN_CS_PIN 5
-#define CAN_INT_PIN 4
+// CAN Command (TWAI natif)
+#define PIN_CAN_TX 4
+#define PIN_CAN_RX 5
+#define CAN_BITRATE 250000UL
 
 // Servos (PCA9685)
 #define PCA9685_SDA 21
 #define PCA9685_SCL 22
 
-// Booster (DRV8874)
-#define BOOSTER_EN_PIN 12
-#define BOOSTER_IN1_PIN 13
-#define BOOSTER_IN2_PIN 14
-#define BOOSTER_IPROPI_PIN 34  // Analog
+// UART vers le Booster externe
+#define PIN_BOOSTER_UART_TX 16
+#define PIN_BOOSTER_UART_RX 17
 
-// Capteurs
-#define QUAD_H_A_PIN 15
-#define QUAD_H_B_PIN 16
-#define QUAD_AH_A_PIN 17
-#define QUAD_AH_B_PIN 18
+// Capteurs quadrature
+#define PIN_QUAD_H_A 12
+#define PIN_QUAD_H_B 14
+#define PIN_QUAD_AH_A 34
+#define PIN_QUAD_AH_B 35
 
 // LED
 #define WS2812_DATA_PIN 23
@@ -587,17 +502,6 @@ pio run -e esp32dev
 # Flasher
 pio run -e esp32dev -t upload
 ```
-
-### Configuration des DIP Switch
-
-Les DIP switches permettent de configurer le comportement du module :
-
-| DIP | Position ON | Position OFF |
-|-----|-------------|--------------|
-| 1 | Booster activé | Booster désactivé |
-| 2 | Debug série | Debug désactivé |
-| 3 | Mode test | Mode normal |
-| 4 | Réservé | Réservé |
 
 ### Monitor Série
 
@@ -640,54 +544,36 @@ En mode debug (`EXCC_DEBUG true`), les messages suivants apparaissent :
 
 ---
 
-## 🔄 Adaptation au DCC_CAN_RMT-Booster
+## 🔄 Migration vers le Booster externe
 
-### État d'avancement — 13 novembre 2026
+L'EXCC ne génère plus le DCC et ne pilote plus directement le DRV8874. Ces
+fonctions sont exécutées par l'ESP32 Booster séparé. L'EXCC conserve la
+calibration du courant, la décision d'occupation et le relais des commandes et
+de la télémétrie entre le CantonController et le Booster.
 
-Version PDF : [télécharger le bilan d'avancement](docs/EXCC_Booster_Avancement.pdf).
+### Interfaces et sûreté
 
-Les sept strips WS2812 sont migrés de FastLED vers `Ws2812Universal @ 1.1.0` :
-buffers `WsCrgb`, provider de configuration explicite et canaux RMT 0 à 6.
-FastLED n'est plus une dépendance du firmware.
+- **CAN Command** : TWAI EXCC, bus 0, 250 kbit/s, vers le CantonController.
+- **CAN DCC** : bus distinct entre le convertisseur DCC et le TWAI Booster.
+  La trame historique `0x102` est conservée pour la protection entre boosters.
+- **UART** : EXCC UART2 (GPIO16/17) vers Booster UART1 (GPIO17/16), 460800
+  bauds, 8N1. Les commandes de puissance/profil vont à l'ESP32 Booster; les
+  mesures, l'état et les événements RailCom reviennent à l'EXCC.
+- Les trames UART sont versionnées, séquencées et protégées par CRC-16; les
+  définitions des deux projets (`src/UartProtocol.h`) doivent rester identiques.
+- Heartbeat EXCC toutes les 100 ms; le Booster coupe sa sortie après 250 ms sans
+  heartbeat valide. Une mesure invalide ou vieille de plus de 10 ms est
+  signalée en défaut et force le canton occupé.
+- Le courant est transmis à 1 kHz. Calibration et seuils d'occupation restent
+  appliqués côté EXCC.
 
-L'intégration conserve les autres fonctions EXCC (signaux, cantons, quadrature,
-compteur d'essieux, servos, switches, LEDs et communication avec le
-CantonController). La compilation PlatformIO complète a réussi. Le matériel
-booster et le convertisseur n'étant pas disponibles pour les essais, les
-résultats électriques et RailCom restent à confirmer sur la carte assemblée.
+### Validation
 
-| Phase | État | Avancement et limites |
-|---|---|---|
-| 0 — Crash au boot | ✅ Validée | Ordre d'initialisation corrigé; le démarrage propre a été confirmé par les logs série. |
-| 1 — Brochage et bus CAN | ✅ Validée logiciellement | Brochage cible et bus TWAI unique configurés; compilation et démarrage confirmés. |
-| 2 — Modules booster | ✅ Code intégré; matériel à valider | RMT TX canal 7, interface DRV8874, mesure ADC, digipot et UART2 RailCom sont présents. Les valeurs de tension/digipot et les signaux sur la voie ne sont pas calibrés physiquement. |
-| 3 — Front-end RailCom | ⏳ En attente du matériel | UART2 est configuré sur GPIO36 à 250 kbit/s, 8E1. BAT54, TLV9151, TLP2362 et la réception RailCom réelle doivent être vérifiés sur la carte. |
-| 4 — Flux CAN vers DCC | 🟡 Intégration logicielle partielle | `0x100` est validé puis dépaqueté en FIFO avant émission RMT. `0x101` déclenche une fenêtre locale temporisée de 454 µs, car START/END sont transmis presque consécutivement. RailCom valide est remonté au CantonController. Le failsafe à 500 ms et la protection distante décrits dans le cahier des charges restent à compléter/vérifier. |
-| 5 — Validation système | 🟡 Partielle | Build propre réussi et boot déjà observé. Oscilloscope, cutout réel, RailCom avec locomotive, profils HO/N et perte du convertisseur restent à tester avec le matériel. |
-
-#### Format CAN du convertisseur
-
-- `0x100` : `data[0]` est le nombre de bits `N`; les deux nibbles par octet
-  encodent `(bit << 1) | phase`, premier nibble dans le poids faible. EXCC
-  utilise le bit DCC et conserve les blocs dans une FIFO avant le RMT.
-- Le convertisseur a été corrigé pour limiter les blocs à **14 bits** :
-  compteur + sept octets de données = DLC 8, limite d'une trame CAN standard.
-  La correction est fusionnée dans `main` du dépôt
-  [DCC_CAN_RMT-Booster](https://github.com/prune74/DCC_CAN_RMT-Booster).
-- `0x101` transporte des marqueurs de cutout, pas sa durée. EXCC termine donc
-  localement sa fenêtre RailCom après 454 µs; le timing réel doit être mesuré
-  sur la carte.
-
-#### Travaux restants
-
-1. Assembler le front-end RailCom et confirmer le signal UART sur GPIO36.
-2. À l'oscilloscope, vérifier DCC 58/100 µs, inversion IN1/IN2 et cutout BRAKE
-   de 454 µs.
-3. Tester le décodage RailCom avec une locomotive compatible et vérifier le
-   message reçu par le CantonController.
-4. Implémenter et tester le failsafe convertisseur (perte de `0x100` > 500 ms)
-   ainsi que la protection distante si ces exigences restent requises.
-5. Calibrer courant, tension et profils HO/N avec le DRV8874 et le digipot.
+Les builds PlatformIO EXCC et Booster ont réussi après l'intégration UART.
+Les essais matériels ne sont pas encore réalisés : vérifier l'échange UART,
+les timeouts et coupures, les commandes ON/OFF et profil, les mesures et la
+détection d'occupation, ainsi que le relais des événements RailCom. La
+conception PCB est reportée; voir le [plan de migration](docs/Plan_Migration_Booster_Externe_EXCC.md).
 
 ---
 
@@ -699,10 +585,10 @@ résultats électriques et RailCom restent à confirmer sur la carte assemblée.
 - **WS2812** : Remplacement de FastLED par `prune74/Ws2812Universal @ 1.1.0`
 - **Refactorisation du protocole** : Organisation moderne avec enum class par liaison CAN
 - **Séparation des responsabilités** : Occupation centralisée dans EXCC_Occupation
-- **Amélioration RailCom** : Gestion du cutout et décodage HF
+- **Relais RailCom** : Événements du Booster transmis à l'EXCC par UART
 - **Nouveau système de configuration** : Centralisation dans EXCC_Config.h
 - **Support multi-aiguillages** : Jusqu'à 6 aiguillages configurables
-- **Télémétrie avancée** : Mesure précise courant/tension via IPROPI
+- **Télémétrie Booster** : Courant et tension reçus par UART; occupation calculée côté EXCC
 
 ### Historique
 
@@ -739,8 +625,7 @@ Ce projet est sous licence **MIT**. Voir le fichier [LICENSE](LICENSE) pour plus
 
 ## 🙏 Remerciements
 
-- [prune74](https://github.com/prune74) pour les bibliothèques CAN_DCC-Booster et CanUniversal
-- [pierremolinaro](https://github.com/pierremolinaro) pour ACAN_ESP32 et ACAN2515
+- [prune74](https://github.com/prune74) pour CanUniversal et Ws2812Universal
 - [Ws2812Universal](https://github.com/prune74/Ws2812Universal) pour les bus WS2812 RMT
 - [Adafruit](https://github.com/adafruit) pour les bibliothèques PCA9685 et MCP23017
 
