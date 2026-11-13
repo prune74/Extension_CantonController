@@ -80,9 +80,9 @@ static void handleFrame(uint8_t commande, const CanMsg &frame)
             break;
         EXCC_Callbacks::onServoConfig(
             d[0],
-            uint16_t(d[1] | (d[2] << 8)),
-            uint16_t(d[3] | (d[4] << 8)),
-            uint16_t(d[5] | (d[6] << 8)));
+            uint16_t((d[1] << 8) | d[2]),
+            uint16_t((d[3] << 8) | d[4]),
+            uint16_t((d[5] << 8) | d[6]));
         break;
 
     case Cmd_CC_to_EXCC::SERVO_TEST:

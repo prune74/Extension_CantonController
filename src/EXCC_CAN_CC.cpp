@@ -5,11 +5,15 @@
 #include "CanMsg.h"
 #include "CanID.h"
 #include "EXCC_CanCommands.h"
+#include <Arduino.h>
 
 static void sendEXCC(uint8_t prio, uint16_t cmd, uint8_t resp,
                      uint16_t idCanton, const uint8_t *data, uint8_t len)
 {
-    if (!EXCC_CanCommands::hasReceivedFrame())
+    constexpr uint32_t CC_TIMEOUT_MS = 2000;
+    const uint32_t now = millis();
+    if (!EXCC_CanCommands::hasReceivedFrame() ||
+        now - EXCC_CanCommands::lastRxMs() > CC_TIMEOUT_MS)
         return;
 
     uint32_t id29 = CanID::make29(prio, cmd, resp, idCanton);
@@ -42,13 +46,14 @@ void EXCC_CAN_CC::envoyerPonctuelAH(uint16_t idCanton, bool actif)
 
 void EXCC_CAN_CC::envoyerOccupation(uint16_t idCanton, bool occ)
 {
-    uint8_t d[1] = { static_cast<uint8_t>(occ ? 1 : 0) };
+    uint8_t d[1] = { static_cast<uint8_t>(
+        occ ? ExccCode::OCC_ACTIVE : ExccCode::OCC_LIBRE) };
     sendEXCC(1, (uint16_t)Cmd_EXCC_to_CC::OCCUPATION, 0, idCanton, d, 1);
 }
 
 void EXCC_CAN_CC::envoyerBooster(uint16_t idCanton, uint8_t etat, uint8_t courant, uint8_t tension)
 {
-    uint8_t d[3] = {etat, courant, tension};
+    uint8_t d[3] = {tension, courant, etat};
     sendEXCC(1, (uint16_t)Cmd_EXCC_to_CC::BOOSTER_INFO, 0, idCanton, d, 3);
 }
 
