@@ -147,7 +147,9 @@ Le CAN Command EXCC↔CC utilise le TWAI existant à 250 kbit/s; le CAN DCC rest
 - [x] Définir les messages versionnés pour heartbeat, commande/ACK, courant/tension/état, RailCom et défauts.
 - [x] Définir le cadrage, la longueur maximale, le CRC, le séquencement et le rejet des messages inconnus ou corrompus.
 - [x] Définir un heartbeat EXCC→Booster toutes les 100 ms; couper la sortie après 250 ms sans heartbeat valide.
-- [x] Définir les comportements sûrs : échantillon courant périmé après 10 ms → canton marqué occupé et défaut signalé; état du booster transmis explicitement au CC.
+- [x] Définir l'attribution automatique de l'ID canton : CC→EXCC par CAN `CANTON_ID (0xFD)`, puis EXCC→Booster par UART avec ACK.
+- [x] Définir l'état non attribué (`0xFF`), la plage d'ID canton (`0..252`), le rafraîchissement de l'ID et le maintien de la sortie OFF jusqu'à son acquittement.
+- [x] Définir les comportements sûrs : perte du heartbeat UART après 250 ms → puissance OFF et ID runtime effacé; échantillon courant périmé après 10 ms → canton marqué occupé et défaut signalé.
 - [x] Garder dans EXCC la calibration courant, les seuils et la fusion finale d’occupation; fournir les mesures de courant à 1 kHz par UART.
 - [x] Définir les unités, plages, débit d’échantillons courant, fréquence de télémétrie et budget de bande passante UART.
 
@@ -155,9 +157,11 @@ Le CAN Command EXCC↔CC utilise le TWAI existant à 250 kbit/s; le CAN DCC rest
 
 **Spécification de référence retenue :**
 
-- Trame binaire : `A5 5A | version:u8 | type:u8 | séquence:u16 LE | longueur:u8 | payload | CRC:u16 LE`. CRC-16/CCITT-FALSE (polynôme `0x1021`, initialisation `0xFFFF`, sans réflexion, xorout `0x0000`) calculé de `version` à la fin du payload. Champs multi-octets du payload little-endian; payload maximal 32 octets.
-- Types minimaux : `0x01` heartbeat EXCC→Booster (100 ms), `0x02` commande ON/OFF, `0x03` profil N/HO, `0x04` ACK, `0x10` échantillon Booster→EXCC (1 kHz : courant mA, tension mV, état, défauts et validité), `0x11` événement RailCom (type/canal et adresse).
-- Les commandes de puissance et profil sont idempotentes; l’ACK référence le type et le numéro de séquence de la commande. Recalibration et seuils ne sont pas des commandes UART : ils restent gérés par EXCC.
+- Trame binaire : `A5 5A | version:u8 | type:u8 | séquence:u16 LE | longueur:u8 | payload | CRC:u16 LE`. Version 2; CRC-16/CCITT-FALSE (polynôme `0x1021`, initialisation `0xFFFF`, sans réflexion, xorout `0x0000`) calculé de `version` à la fin du payload. Champs multi-octets du payload little-endian; payload maximal 32 octets.
+- Types minimaux : `0x01` heartbeat EXCC→Booster (100 ms), `0x02` commande ON/OFF, `0x03` profil N/HO, `0x04` ACK, `0x05` attribution ID canton EXCC→Booster (`payload[0]` = `0..252`, `0xFF` = retrait/non attribué), `0x10` échantillon Booster→EXCC (1 kHz : courant mA, tension mV, état, défauts et validité), `0x11` événement RailCom (type/canal et adresse).
+- Les commandes de puissance, profil et ID sont idempotentes; l'ACK référence le type et le numéro de séquence de la commande. L'EXCC transmet l'état non attribué au démarrage, retransmet l'ID jusqu'à ACK, puis le rafraîchit périodiquement pour récupérer un redémarrage du Booster. L'ID est conservé en RAM uniquement, réattribué depuis le CC à chaque démarrage; toute absence, invalidité, perte du heartbeat ou modification d'ID garde la puissance OFF jusqu'à une nouvelle commande ON après ACK.
+- L'ID canton est attribué au CC par l'ERM. Le CC le transmet à l'EXCC par `CANTON_ID (0xFD)`; l'EXCC le relaie au Booster via `SET_CANTON_ID (0x05)`. Les IDs `253..255` sont réservés/non attribués. L'ID runtime remplace l'ancien `CFG_BOOSTER_ID` statique et est utilisé dans la télémétrie CAN `0x102` et pour exclure le Booster local des défauts globaux.
+- Rejeter les trames UART de version différente; les deux firmwares doivent être mis à jour ensemble. Recalibration et seuils ne sont pas des commandes UART : ils restent gérés par EXCC.
 - Le paquet d’échantillon courant est le heartbeat Booster→EXCC. Une donnée absente, invalide ou vieille de plus de 10 ms ne doit pas être réutilisée comme mesure fraîche.
 - Le CAN DCC conserve la trame historique 0x102 (ID booster, type, courant/10, tension/100, état) chaque seconde afin que les autres boosters maintiennent leur protection globale.
 - Un échantillon de 7 octets plus l’en-tête et le CRC représente environ 160 kbit/s à 1 kHz en UART 8N1, soit environ 35 % du débit de 460800 bauds, avant les commandes et événements occasionnels.
@@ -168,6 +172,7 @@ Le CAN Command EXCC↔CC utilise le TWAI existant à 250 kbit/s; le CAN DCC rest
 - [x] Garder la réception et le décodage DCC, le FIFO, la régénération RMT et le minutage local du cutout sur l’ESP32 Booster.
 - [x] Maintenir le DRV8874, RailCom, IPROPI, VRAIL, protections courant/tension et digipot sur l’ESP32 Booster.
 - [x] Ajouter le port UART vers EXCC pour commandes et télémétrie; ne pas retransmettre les blocs DCC à EXCC.
+- [x] Remplacer l'ID Booster compilé en dur par l'ID canton reçu de l'EXCC; maintenir OFF et ne pas émettre `0x102` tant qu'un ID valide n'est pas attribué.
 - [x] Transmettre les mesures de courant à EXCC à 1 kHz avec un indicateur de validité.
 - [x] Couper la sortie à la perte de DCC ou après 250 ms sans heartbeat UART valide; appliquer les limites de courant/tension.
 - [x] Maintenir le rapport périodique d’état et les événements RailCom vers EXCC par UART.
@@ -182,6 +187,7 @@ Le CAN Command EXCC↔CC utilise le TWAI existant à 250 kbit/s; le CAN DCC rest
 - [x] Conserver le CAN Command avec le CC; vérifier l’index de bus, le mode normal (pas loopback en production) et l’appel effectif au traitement des commandes.
 - [x] Configurer le TWAI EXCC au débit du CAN Command (250 kbit/s) et désactiver le loopback matériel en exploitation.
 - [x] Faire suivre au Booster les commandes de puissance et de profil de voie; conserver recalibration et seuils dans EXCC.
+- [x] Relayer `CANTON_ID` attribué par le CC vers le Booster par UART, acquitter et rafraîchir l'attribution; toute modification d'ID remet la puissance OFF.
 - [x] Relayer vers le CC la télémétrie, les défauts et les adresses RailCom reçus du Booster.
 - [x] Maintenir les LEDs d’état existantes alimentées par l’état distant du Booster.
 - [x] Préserver la fusion d’occupation EXCC et la calibration courant en garantissant une source de courant fraîche au rythme requis.
@@ -193,6 +199,7 @@ Le CAN Command EXCC↔CC utilise le TWAI existant à 250 kbit/s; le CAN DCC rest
 - [x] Compiler EXCC seul avec les fonctions canton et signaux conservées.
 - [x] Compiler le firmware Booster seul avec le DCC sur son TWAI et la liaison UART.
 - [ ] Tester le protocole UART avec messages valides, CRC invalide, trames tronquées, messages inconnus et perte de liaison.
+- [ ] Tester l'attribution ID `0`, `12`, `252`, les IDs réservés, l'effacement `0xFF`, la perte d'ACK et le redémarrage du Booster; vérifier que l'ID `0x102` correspond au CC et que la sortie reste OFF sans ID/commande ON.
 - [ ] Tester séparément les CAN général, Command et DCC; vérifier qu’aucune trame DCC ne circule sur CAN Command.
 - [ ] Vérifier le démarrage EXCC sans CantonController, puis le comportement en cas de perte du CC après connexion.
 - [ ] Tester commandes CC → EXCC → UART → Booster et retour télémétrie/RailCom Booster → UART → EXCC → CC.
@@ -206,13 +213,14 @@ Le CAN Command EXCC↔CC utilise le TWAI existant à 250 kbit/s; le CAN DCC rest
 - **EXCC** : passerelle `src/EXCC_BoosterUart.*`, protocole `src/UartProtocol.h`, runtime et occupation, calibration, commandes CAN, configuration CAN, brochage et configuration PlatformIO.
 - **Booster** : liaison `src/BoosterUartLink.*`, copie synchronisée de `src/UartProtocol.h`, cœur, brochage et point d’entrée pour les mesures, commandes UART et failsafe.
 - Les anciens modules locaux de génération DCC, DRV8874 et RailCom ont été supprimés du firmware EXCC.
-- Le protocole CAN du CantonController reste inchangé; l’EXCC utilise son interface TWAI pour CAN Command.
+- Le protocole CAN du CantonController reste inchangé; l'EXCC utilise son interface TWAI pour CAN Command et relaie le `CANTON_ID (0xFD)` existant du CC.
 
 ## 6. Décisions gelées et validation restante
 
 - CAN Command : bus 0 TWAI EXCC à 250 kbit/s, loopback désactivé; traitement CAN appelé depuis le runtime.
 - L’EXCC attend une première trame CAN valide du CC avant d’émettre ses propres messages, afin d’éviter des émissions non acquittées au démarrage isolé.
 - Les LEDs de statut Booster restent dans EXCC et reflètent l’état distant reçu par UART.
+- L'ID du Booster est celui du canton attribué par l'ERM au CC; il transite CC→EXCC par CAN `0xFD`, puis EXCC→Booster par UART version 2. Il n'est pas persisté dans le Booster; puissance OFF sans ID valide ou après tout changement d'ID.
 - La trame 0x102 reste sur le CAN DCC pour la protection globale entre boosters.
 - Restent à faire : tests UART (CRC, trames tronquées/inconnues, perte de liaison), essais des trois réseaux CAN et tests de bout en bout avec le matériel.
 

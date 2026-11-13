@@ -5,10 +5,12 @@
 
 namespace BoosterUart
 {
-constexpr uint8_t VERSION = 1;
+constexpr uint8_t VERSION = 2;
 constexpr uint8_t SYNC_0 = 0xA5;
 constexpr uint8_t SYNC_1 = 0x5A;
 constexpr uint8_t MAX_PAYLOAD = 32;
+constexpr uint8_t MAX_CANTON_ID = 252;
+constexpr uint8_t CANTON_ID_UNASSIGNED = 0xFF;
 constexpr size_t HEADER_SIZE = 7;
 constexpr size_t CRC_SIZE = 2;
 constexpr size_t MAX_FRAME_SIZE = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
@@ -19,6 +21,7 @@ enum class Type : uint8_t
     SET_POWER = 0x02,
     SET_PROFILE = 0x03,
     ACK = 0x04,
+    SET_CANTON_ID = 0x05,
     SAMPLE = 0x10,
     RAILCOM = 0x11
 };

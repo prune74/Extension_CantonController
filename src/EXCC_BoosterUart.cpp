@@ -10,11 +10,13 @@ namespace
 constexpr uint32_t UART_BAUD = 460800;
 constexpr uint32_t HEARTBEAT_PERIOD_MS = 100;
 constexpr uint32_t COMMAND_RETRY_MS = 500;
+constexpr uint32_t CANTON_ID_REFRESH_MS = 1000;
 constexpr uint32_t PROFILE_REFRESH_MS = 5000;
 constexpr uint32_t SAMPLE_TIMEOUT_MS = 10;
 constexpr uint32_t RAILCOM_RECENT_MS = 500;
 
 constexpr uint8_t ACK_OK = 0;
+constexpr uint8_t ACK_NO_ID = 3;
 
 uint16_t readU16Le(const uint8_t *data)
 {
@@ -28,6 +30,7 @@ void EXCC_BoosterUart::begin()
     Serial2.begin(UART_BAUD, SERIAL_8N1, PIN_BOOSTER_UART_RX, PIN_BOOSTER_UART_TX);
     const uint32_t now = millis();
     m_lastHeartbeatMs = now - HEARTBEAT_PERIOD_MS;
+    m_lastCantonIdMs = now - COMMAND_RETRY_MS;
     m_lastPowerCommandMs = now - COMMAND_RETRY_MS;
     m_lastProfileCommandMs = now - COMMAND_RETRY_MS;
 }
@@ -39,6 +42,10 @@ void EXCC_BoosterUart::process()
     const uint32_t now = millis();
     if (now - m_lastHeartbeatMs >= HEARTBEAT_PERIOD_MS)
         sendHeartbeat(now);
+    if (m_hasCantonId &&
+        now - m_lastCantonIdMs >=
+            (m_cantonIdAcked ? CANTON_ID_REFRESH_MS : COMMAND_RETRY_MS))
+        sendCantonId(now);
     if (now - m_lastPowerCommandMs >= COMMAND_RETRY_MS)
         sendPowerCommand(now);
     if (m_profilePending && now - m_lastProfileCommandMs >= COMMAND_RETRY_MS)
@@ -51,12 +58,19 @@ void EXCC_BoosterUart::process()
     }
 }
 
-void EXCC_BoosterUart::setPowerEnabled(bool enabled)
+bool EXCC_BoosterUart::setPowerEnabled(bool enabled)
 {
+    if (enabled &&
+        (!m_hasCantonId ||
+         m_cantonId == BoosterUart::CANTON_ID_UNASSIGNED ||
+         !m_cantonIdAcked))
+        return false;
+
     if (m_powerEnabled == enabled)
-        return;
+        return true;
     m_powerEnabled = enabled;
     m_lastPowerCommandMs = millis() - COMMAND_RETRY_MS;
+    return true;
 }
 
 void EXCC_BoosterUart::setTrackProfile(bool ho)
@@ -64,6 +78,22 @@ void EXCC_BoosterUart::setTrackProfile(bool ho)
     m_trackProfileHo = ho;
     m_profilePending = true;
     m_lastProfileCommandMs = millis() - COMMAND_RETRY_MS;
+}
+
+void EXCC_BoosterUart::setCantonId(uint8_t id)
+{
+    const uint8_t acceptedId =
+        id <= BoosterUart::MAX_CANTON_ID
+            ? id
+            : BoosterUart::CANTON_ID_UNASSIGNED;
+    if (m_hasCantonId && m_cantonId == acceptedId)
+        return;
+
+    m_cantonId = acceptedId;
+    m_hasCantonId = true;
+    m_cantonIdAcked = false;
+    m_lastCantonIdMs = millis() - COMMAND_RETRY_MS;
+    setPowerEnabled(false);
 }
 
 bool EXCC_BoosterUart::isSampleFresh() const
@@ -134,10 +164,29 @@ void EXCC_BoosterUart::handleFrame(const BoosterUart::Frame &frame)
         break;
 
     case BoosterUart::Type::ACK:
-        if (frame.length == 4 &&
-            frame.payload[0] == static_cast<uint8_t>(BoosterUart::Type::SET_PROFILE) &&
-            readU16Le(frame.payload + 1) == m_profileSequence &&
-            frame.payload[3] == ACK_OK)
+        if (frame.length != 4)
+            return;
+
+        if (frame.payload[0] ==
+                static_cast<uint8_t>(BoosterUart::Type::SET_CANTON_ID) &&
+            readU16Le(frame.payload + 1) == m_cantonIdSequence)
+        {
+            m_cantonIdAcked = frame.payload[3] == ACK_OK;
+            if (!m_cantonIdAcked)
+                m_lastCantonIdMs = millis() - COMMAND_RETRY_MS;
+        }
+        else if (frame.payload[0] ==
+                     static_cast<uint8_t>(BoosterUart::Type::SET_POWER) &&
+                 frame.payload[3] == ACK_NO_ID && m_hasCantonId)
+        {
+            m_cantonIdAcked = false;
+            m_lastCantonIdMs = millis() - COMMAND_RETRY_MS;
+            setPowerEnabled(false);
+        }
+        else if (frame.payload[0] ==
+                     static_cast<uint8_t>(BoosterUart::Type::SET_PROFILE) &&
+                 readU16Le(frame.payload + 1) == m_profileSequence &&
+                 frame.payload[3] == ACK_OK)
             m_profilePending = false;
         break;
 
@@ -155,8 +204,25 @@ void EXCC_BoosterUart::sendHeartbeat(uint32_t now)
         m_lastHeartbeatMs = now;
 }
 
+void EXCC_BoosterUart::sendCantonId(uint32_t now)
+{
+    BoosterUart::Frame frame;
+    frame.type = static_cast<uint8_t>(BoosterUart::Type::SET_CANTON_ID);
+    frame.sequence = m_cantonIdSequence = m_txSequence++;
+    frame.length = 1;
+    frame.payload[0] = m_cantonId;
+    if (sendFrame(frame))
+    {
+        m_lastCantonIdMs = now;
+        m_cantonIdAcked = false;
+    }
+}
+
 void EXCC_BoosterUart::sendPowerCommand(uint32_t now)
 {
+    if (!m_cantonIdAcked)
+        return;
+
     BoosterUart::Frame frame;
     frame.type = static_cast<uint8_t>(BoosterUart::Type::SET_POWER);
     frame.sequence = m_txSequence++;

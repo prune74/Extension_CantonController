@@ -57,7 +57,7 @@ extern EXCC_BoosterUart boosterUart;
  *  ID du canton (reçu via CANTON_ID = 0xFD)
  * ============================================================================
  */
-uint8_t g_idCC = 0;
+uint8_t g_idCC = BoosterUart::CANTON_ID_UNASSIGNED;
 
 /* ============================================================================
  *  Fonction interne : mapping type SNCF → layout WS2812
@@ -84,11 +84,18 @@ void EXCC_Callbacks::onCantonID(const uint8_t *data, uint8_t len) noexcept
     if (len < 1)
         return;
 
-#if EXCC_DEBUG
-    Serial.printf("[EXCC] CANTON_ID reçu : %u\n", data[0]);
-#endif
+    const uint8_t id = data[0];
+    g_idCC = id <= BoosterUart::MAX_CANTON_ID
+                 ? id
+                 : BoosterUart::CANTON_ID_UNASSIGNED;
+    boosterUart.setCantonId(g_idCC);
 
-    g_idCC = data[0];
+#if EXCC_DEBUG
+    if (g_idCC == BoosterUart::CANTON_ID_UNASSIGNED)
+        Serial.printf("[EXCC] CANTON_ID non attribué/invalide : %u\n", id);
+    else
+        Serial.printf("[EXCC] CANTON_ID reçu : %u\n", g_idCC);
+#endif
 }
 
 /* ============================================================================
@@ -235,11 +242,13 @@ void EXCC_Callbacks::onSetSeuils(uint16_t libre, uint16_t occupe) noexcept
  */
 void EXCC_Callbacks::onBoosterPower(uint8_t power) noexcept
 {
+    const bool accepted = boosterUart.setPowerEnabled(power != 0);
 #if EXCC_DEBUG
-    Serial.printf("[EXCC] BOOSTER POWER : %s\n", power ? "ON" : "OFF");
+    if (accepted)
+        Serial.printf("[EXCC] BOOSTER POWER : %s\n", power ? "ON" : "OFF");
+    else
+        Serial.println("[EXCC] BOOSTER POWER ON refuse : ID canton absent/non acquitte");
 #endif
-
-    boosterUart.setPowerEnabled(power != 0);
 }
 
 /* ============================================================================
